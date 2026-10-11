@@ -8,23 +8,43 @@ Object.assign(window.IMO_L10N.en.problems, {
   hints:[ String.raw`Assume $a_{1}<a_{2}<a_{3}<a_{4}$. Which sums $a_{i}+a_{j}$ are certainly larger than $\frac{s_{A}}{2}$?`,
           String.raw`If $a_{i}+a_{j}>\frac{s_{A}}{2}$ and $a_{i}+a_{j}<s_{A}$, that sum cannot divide $s_{A}$. Check this for the pairs $(3,4)$ and $(2,4)$.`,
           String.raw`So $n_{A}\le4$. It remains to analyse the case where all four sums $a_{1}+a_{2},a_{1}+a_{3},a_{1}+a_{4},a_{2}+a_{3}$ divide $s_A$.`],
-  solution: String.raw`Let $a_{1}<a_{2}<a_{3}<a_{4}$ and $s=s_{A}$.
+  solution: String.raw`Assume $a_{1}<a_{2}<a_{3}<a_{4}$ and write $s=s_{A}$.
 
-*Step 1: $n_{A}\le 4$.* A sum $a_{i}+a_{j}$ dividing $s$ and strictly less than $s$ must satisfy $a_{i}+a_{j}\le\frac s2$. But
-$$a_{3}+a_{4}>a_{1}+a_{2}\ \Longrightarrow\ 2(a_{3}+a_{4})>s\ \Longrightarrow\ a_{3}+a_{4}>\frac s2,$$
-$$a_{2}+a_{4}>a_{1}+a_{3}\ \Longrightarrow\ 2(a_{2}+a_{4})>s\ \Longrightarrow\ a_{2}+a_{4}>\frac s2 .$$
-So the pairs $(3,4)$ and $(2,4)$ never work, and $n_{A}\le 6-2=4$.
+*Step 1: $n_{A}\le 4$.* If $a_{i}+a_{j}$ divides $s$, the quotient is an integer greater than $1$ (since $0<a_{i}+a_{j}<s$), so $a_{i}+a_{j}\le\frac s2$. But
+$$2\left(a_{3}+a_{4}\right)>\left(a_{1}+a_{2}\right)+\left(a_{3}+a_{4}\right)=s,\qquad 2\left(a_{2}+a_{4}\right)>\left(a_{1}+a_{3}\right)+\left(a_{2}+a_{4}\right)=s,$$
+hence $a_{3}+a_{4}>\frac s2$ and $a_{2}+a_{4}>\frac s2$. So the pairs $(3,4)$ and $(2,4)$ never work and
+$$n_{A}\le 6-2=4 .$$
 
-*Step 2: examples with $n_{A}=4$.*
-$A=\{1,5,7,11\}$: $s=24$ and $1+5=6\mid24$, $1+7=8\mid24$, $1+11=12\mid24$, $5+7=12\mid24$ (while $5+11=16$ and $7+11=18$ do not divide $24$). So $n_{A}=4$.
-$A=\{1,11,19,29\}$: $s=60$ and $1+11=12\mid 60$, $1+19=20\mid60$, $1+29=30\mid60$, $11+19=30\mid60$. So $n_{A}=4$.
-Scaling all elements by $d$ preserves every divisibility, so $\{d,5d,7d,11d\}$ and $\{d,11d,19d,29d\}$ work.
+*Step 2: what $n_{A}=4$ means.* Then $s$ is divisible by all four remaining sums
+$$a_{1}+a_{2},\quad a_{1}+a_{3},\quad a_{1}+a_{4},\quad a_{2}+a_{3},$$
+and by Step 1 each of them is at most $\frac s2$. Since
+$$\left(a_{1}+a_{4}\right)+\left(a_{2}+a_{3}\right)=s,$$
+and two numbers that are each at most $\frac s2$ can add up to $s$ only if both equal $\frac s2$, we get
+$$a_{1}+a_{4}=a_{2}+a_{3}=\frac s2 . \tag{1}$$
 
-*Step 3: classification (outline).* Suppose $n_{A}=4$, so $s$ is divisible by
-$$a_{1}+a_{2},\quad a_{1}+a_{3},\quad a_{1}+a_{4},\quad a_{2}+a_{3}.$$
-Careful size estimates force $a_{1}+a_{4}=\frac s2$, and $a_{2}+a_{3}\in\{\frac s2,\frac s3\}$. Analysing these two cases (after normalising $\gcd=1$) leads exactly to the two solutions $\{1,5,7,11\}$ and $\{1,11,19,29\}$.
+*Step 3: two parametrisations.* From $a_{1}<a_{2}$ we get $a_{1}+a_{3}<a_{2}+a_{3}=\frac s2$; a divisor strictly below $\frac s2$ has quotient at least $3$, so
+$$s=k\left(a_{1}+a_{3}\right),\qquad k\ge 3 .$$
+Likewise $a_{1}+a_{2}<a_{1}+a_{3}$, so $s=m\left(a_{1}+a_{2}\right)$ for an integer $m>k$, in particular $m\ge4$.
 
-Answer: the maximum is $4$, attained on $\{d,5d,7d,11d\}$ and $\{d,11d,19d,29d\}$.`,
+From (1) and $a_{1}+a_{3}=\frac sk$ we get $a_{2}=\frac s2-a_{3}=\frac s2-\frac sk+a_{1}$, while $a_{1}+a_{2}=\frac sm$ gives $a_{2}=\frac sm-a_{1}$. Comparing,
+$$\frac sm-a_{1}=\frac s2-\frac sk+a_{1}\qquad\Longrightarrow\qquad a_{1}=\frac s2\left(\frac1k+\frac1m-\frac12\right). \tag{2}$$
+
+*Step 4: finitely many cases.* Since $a_{1}>0$, (2) forces $\frac1k+\frac1m>\frac12$.
+- If $k\ge5$ then $m\ge6$ and $\frac1k+\frac1m\le\frac15+\frac16=\frac{11}{30}<\frac12$ — contradiction.
+- If $k=4$ then $m\ge5$ and $\frac1k+\frac1m\le\frac14+\frac15=\frac9{20}<\frac12$ — contradiction.
+- Hence $k=3$, and then $\frac1m>\frac12-\frac13=\frac16$, i.e. $m<6$. Together with $m\ge4$ this leaves $m\in\{4,5\}$.
+
+*Step 5: the two families.* For $k=3,\ m=4$ formula (2) gives $a_{1}=\frac s2\cdot\frac1{12}=\frac s{24}$ and then
+$$a_{2}=\frac s4-a_{1}=\frac{5s}{24},\qquad a_{3}=\frac s3-a_{1}=\frac{7s}{24},\qquad a_{4}=\frac s2-a_{1}=\frac{11s}{24},$$
+that is $A=\{d,5d,7d,11d\}$ with $d=a_{1}=\frac s{24}$.
+
+For $k=3,\ m=5$ formula (2) gives $a_{1}=\frac s2\cdot\frac1{30}=\frac s{60}$ and then
+$$a_{2}=\frac s5-a_{1}=\frac{11s}{60},\qquad a_{3}=\frac s3-a_{1}=\frac{19s}{60},\qquad a_{4}=\frac s2-a_{1}=\frac{29s}{60},$$
+that is $A=\{d,11d,19d,29d\}$ with $d=a_{1}=\frac s{60}$.
+
+*Step 6: both families work.* For $A=\{d,5d,7d,11d\}$ we have $s=24d$ and the sums dividing $s$ are exactly $6d,8d,12d,12d$ — four pairs. For $A=\{d,11d,19d,29d\}$ we have $s=60d$ and the sums $12d,20d,30d,30d$ all divide $s$ — again four pairs.
+
+So the maximum is $n_{A}=4$, attained exactly for $\{d,5d,7d,11d\}$ and $\{d,11d,19d,29d\}$, $d\in\mathbb{N}$. $\blacksquare$`,
   tags:["divisibility","size estimates","classification"] },
 
 "2011-3": { title:"A functional inequality",
@@ -86,19 +106,40 @@ $$f(n)=(2n-1)\,f(n-1),\qquad f(1)=1 .$$
 
 "2012-1": { title:"The midpoint of ST",
   statement: String.raw`Given a triangle $ABC$, let $J$ be the centre of the excircle opposite the vertex $A$. This excircle is tangent to the side $BC$ at $M$, and to the lines $AB$ and $AC$ at $K$ and $L$ respectively. The lines $LM$ and $BJ$ meet at $F$, and the lines $KM$ and $CJ$ meet at $G$. Let $S$ be the point of intersection of the lines $AF$ and $BC$, and let $T$ be the point of intersection of the lines $AG$ and $BC$. Prove that $M$ is the midpoint of $ST$.`,
-  hints:[ String.raw`Tangent segments: $BK=BM$ and $CL=CM$. What is then the line $BJ$ with respect to the segment $KM$?`,
-          String.raw`$BJ$ is the perpendicular bisector of $KM$ (since $BK=BM$ and $BJ$ bisects the angle $KBM$). Similarly $CJ$ is the perpendicular bisector of $LM$.`,
-          String.raw`Hence $FK=FM$ and $GL=GM$; an angle chase then yields $\angle ASB$ and $\angle ATB$, giving $MS=MT$.`],
-  solution: String.raw`*Key lemma.* The excircle touches line $AB$ at $K$ and $BC$ at $M$, so $BK=BM$ (tangent segments from $B$). Moreover $BJ$ bisects the angle $KBM$ (the external angle at $B$). In the isosceles triangle $KBM$ the bisector from the apex gives: **$BJ$ is the perpendicular bisector of the segment $KM$.** Similarly, from $CL=CM$, **$CJ$ is the perpendicular bisector of $LM$**.
+  hints:[ String.raw`Write down the tangent lengths: $AK=AL=p$, $BK=BM=p-c$, $CL=CM=p-b$, where $p$ is the semiperimeter.`,
+          String.raw`On line $BC$, beyond $B$, mark the point $S^{\prime}$ with $BS^{\prime}=BA$. Why is $BJ$ the perpendicular bisector of $AS^{\prime}$?`,
+          String.raw`It remains to prove that the line $LM$ passes through the midpoint of $AS^{\prime}$ — that is exactly Menelaus for the triangle $AS^{\prime}C$ with transversal $LM$.`],
+  solution: String.raw`Write $a=BC$, $b=CA$, $c=AB$ and $p=\frac{a+b+c}{2}$ (the semiperimeter).
 
-Consequences: since $F\in BJ$ we get $FK=FM$; since $G\in CJ$ we get $GL=GM$. So the triangles $FKM$ and $GLM$ are isosceles, and
-$$\angle FMK=\angle FKM,\qquad \angle GML=\angle GLM .$$
+*Step 1: tangent lengths.* The excircle touches line $AB$ at $K$, line $AC$ at $L$ and side $BC$ at $M$, so tangent segments from the same point are equal:
+$$AK=AL,\qquad BK=BM,\qquad CL=CM .$$
+The points $K$ and $L$ lie on the rays $AB$ and $AC$ beyond $B$ and $C$, so $AK=c+BK$ and $AL=b+CL$. Adding, $2AK=b+c+BM+CM=b+c+a=2p$, hence
+$$AK=AL=p,\qquad BM=BK=p-c,\qquad CM=CL=p-b . \tag{1}$$
 
-*Outline of the finish.* Using the isosceles triangles and the fact that $\angle(LM,BC)=\frac{\gamma}{2}$, $\angle(KM,BC)=\frac{\beta}{2}$ (from the isosceles triangles $CLM$ and $BKM$), an angle chase gives
-$$\angle MFA=90^{\circ}\quad\text{and}\quad \angle MGA=90^{\circ},$$
-i.e. $F$ and $G$ are the feet of the perpendiculars from $M$ to the lines $AF$ and $AG$. From this $MS$ and $MT$ get the same expression in terms of the distance from $M$ to $A$ and the angles, which gives $MS=MT$, i.e. $M$ is the midpoint of $ST$.
+*Step 2: an auxiliary point.* Let $S'$ be the point of line $BC$ on the opposite side of $B$ from $C$ with $BS'=BA=c$. The ray $BS'$ is opposite to the ray $BC$, so $\angle ABS'=180^{\circ}-\angle ABC$ is the exterior angle of the triangle at $B$. The excenter $J$ opposite $A$ lies on the external bisector of angle $B$, i.e. the line $BJ$ bisects $\angle ABS'$. In the isosceles triangle $ABS'$ (where $BA=BS'$) the bisector from $B$ coincides with the perpendicular bisector of the base, so
+$$BJ\ \text{is the perpendicular bisector of}\ AS' . \tag{2}$$
 
-*Remark.* The substance is the lemma about perpendicular bisectors; the closing angle chase is best done with the notation $\beta=\angle ABC$, $\gamma=\angle BCA$ and all angles at $M$ expressed through $\frac\beta2,\frac\gamma2$.`,
+*Step 3: the line $LM$ passes through the midpoint of $AS'$.* The points $S',B,M,C$ lie on line $BC$ in this order, and by (1)
+$$S'M=S'B+BM=c+(p-c)=p,\qquad MC=p-b,\qquad CL=p-b,\qquad LA=p .$$
+Apply Menelaus' theorem to the triangle $AS'C$ and the transversal $LM$: it meets line $S'C$ at $M$, line $CA$ at $L$ and line $AS'$ at some point $P$. Then
+$$\frac{AP}{PS'}\cdot\frac{S'M}{MC}\cdot\frac{CL}{LA}=1 .$$
+But
+$$\frac{S'M}{MC}\cdot\frac{CL}{LA}=\frac{p}{p-b}\cdot\frac{p-b}{p}=1,$$
+so $\frac{AP}{PS'}=1$, i.e. $P$ is the midpoint of $AS'$.
+
+*Step 4: identifying $S$ with $S'$.* By (2) the midpoint of $AS'$ lies on $BJ$, and by Step 3 it lies on $LM$. These two lines are distinct: $M$ lies on $LM$ but not on $BJ$, because $BJ$ meets $BC$ only at $B$ while $BM=p-c>0$. So $BJ$ and $LM$ have at most one common point, and that point is exactly $F$. Hence
+$$F\ \text{is the midpoint of}\ AS' .$$
+In particular $A,F,S'$ are collinear, so the line $AF$ meets $BC$ precisely at $S'$, that is $S=S'$ and
+$$MS=p . \tag{3}$$
+
+*Step 5: the symmetric statement.* Swap the roles of $B\leftrightarrow C$ and $K\leftrightarrow L$. Let $T'$ be the point of line $BC$ beyond $C$ with $CT'=CA=b$. Then $CJ$ is the perpendicular bisector of $AT'$, and for the triangle $AT'B$ with transversal $KM$
+$$\frac{T'M}{MB}\cdot\frac{BK}{KA}=\frac{p}{p-c}\cdot\frac{p-c}{p}=1$$
+(here $T'M=T'C+CM=b+(p-b)=p$, $MB=p-c$, $BK=p-c$, $KA=p$). So $KM$ passes through the midpoint of $AT'$, that midpoint is $G$, hence $T=T'$ and
+$$MT=p . \tag{4}$$
+
+*Step 6: conclusion.* $S$ lies on line $BC$ beyond $B$ and $T$ beyond $C$, so $M$ lies between $S$ and $T$. By (3) and (4) $MS=MT=p$, so $M$ is the midpoint of $ST$ (and $ST=2p$). $\blacksquare$
+
+*Remark.* Along the way we obtained: $F$ and $G$ are the midpoints of $AS$ and $AT$, the lines $BJ$ and $CJ$ are perpendicular to $AS$ and $AT$, and $BS=AB$, $CT=AC$, $MS=MT=p$. The lemma "$BJ$ is the perpendicular bisector of $KM$ and $CJ$ of $LM$" (which follows from $BK=BM$, $CL=CM$) is true but not needed for this solution.`,
   tags:["excircle","tangent segments","perpendicular bisector"] },
 
 "2012-2": { title:"A product of powers of binomials",
@@ -310,18 +351,51 @@ Answer: the multiples of $9$.`,
 $$(x-1)(x-2)\cdots(x-2016)=(x-1)(x-2)\cdots(x-2016)$$
 is written on the board, with $2016$ linear factors on each side. Determine the least possible value of $k$ for which it is possible to erase exactly $k$ of these $4032$ linear factors so that at least one factor remains on each side and the resulting equation has no real solutions.`,
   answer: String.raw`$k=2016$.`,
-  hints:[ String.raw`If a factor $(x-j)$ remains on one side and is erased on the other, then $x=j$ is a root. What does that force?`,
-          String.raw`For each $j$ the factor $(x-j)$ must be erased on both sides or kept on both — but then the two sides coincide!`,
-          String.raw`So for every $j$ exactly one copy of $(x-j)$ is erased, giving $k\ge 2016$; now build an example with $k=2016$ by splitting $1,\dots,2016$ into blocks of four.`],
-  solution: String.raw`*Lower bound $k\ge 2016$.* After erasing we obtain an equation $P(x)=Q(x)$, where $P$ is the product of the factors left on the left and $Q$ of those on the right. If for some $j$ the factor $(x-j)$ remains on exactly one side, then at $x=j$ that side vanishes while the other does not, so $x=j$ is a root. To avoid roots, for each $j$ the factor must be present on both sides or absent from both.
+  hints:[ String.raw`If the factor $(x-j)$ survives on both sides then $x=j$ is a root. What does that give for the number of erasures?`,
+          String.raw`So for every $j$ at least one copy of $(x-j)$ is erased, i.e. $k\ge 2016$. It remains to construct an example with exactly $2016$ erasures.`,
+          String.raw`Split $1,\dots,2016$ into quadruples $\{4i+1,4i+2,4i+3,4i+4\}$ and compare $(u-1)(u-4)$ with $(u-2)(u-3)$: the difference is constant and equals $2$.`],
+  solution: String.raw`*Lower bound $k\ge 2016$.* Suppose that after the erasing we are left with $P(x)=Q(x)$, where $P$ is the product of the remaining factors on the left and $Q$ on the right. If for some $j\in\{1,\dots,2016\}$ the factor $(x-j)$ survives on both sides, then $P(j)=Q(j)=0$ and $x=j$ is a real root. Hence for every $j$ at least one of the two copies of $(x-j)$ is erased, and these erasures are distinct for distinct $j$, so
+$$k\ \ge\ 2016 .$$
 
-But then the profiles of remaining factors coincide on both sides, so $P\equiv Q$ and the equation has infinitely many roots. Hence for every $j\in\{1,\dots,2016\}$ at least one copy of $(x-j)$ must be erased, i.e. $k\ge 2016$.
+*A construction with $k=2016$.* On the left keep the factors $(x-j)$ with $j\equiv 0,1\pmod 4$, on the right those with $j\equiv2,3\pmod4$, and erase the rest. Each side keeps $1008$ factors and exactly $2016$ factors are erased. The equation becomes $L(x)=R(x)$ with
+$$L(x)=\prod_{i=0}^{503}A_{i}(x),\qquad R(x)=\prod_{i=0}^{503}B_{i}(x),$$
+$$A_{i}(x)=\left(x-4i-1\right)\left(x-4i-4\right),\qquad B_{i}(x)=\left(x-4i-2\right)\left(x-4i-3\right).$$
 
-*An example with $k=2016$.* Split $\{1,2,\dots,2016\}$ into $504$ blocks $\{4m+1,4m+2,4m+3,4m+4\}$. Keep on the left the factors with indices $\equiv 1,0 \pmod 4$ and on the right those with indices $\equiv 2,3\pmod 4$ (each index is erased on exactly one side, $2016$ erasures in total). The resulting equation
-$$\prod_{m=0}^{503}(x-4m-1)(x-4m-4)=\prod_{m=0}^{503}(x-4m-2)(x-4m-3)$$
-has no real roots: a sign analysis interval by interval shows that for every real $x$ the two sides are never equal, because within each block of four the pairings compare in a fixed direction.
+*The key identity.* With $u=x-4i$ we have $A_{i}=(u-1)(u-4)=u^{2}-5u+4$ and $B_{i}=(u-2)(u-3)=u^{2}-5u+6$, so
+$$B_{i}(x)=A_{i}(x)+2\qquad\text{for all }i\text{ and }x . \tag{1}$$
 
-Answer: $k=2016$.`,
+We prove that $L(x)<R(x)$ for every real $x$; then there are no real roots.
+
+Note that $A_{i}(x)\le0$ exactly for $x\in\left[4i+1,\,4i+4\right]$, and these intervals are pairwise disjoint for $i=0,\dots,503$. So only two cases are possible.
+
+*Case 1: $A_{i}(x)>0$ for every $i$.* By (1) we then have $0<A_{i}(x)<B_{i}(x)$ for each $i$; multiplying these $504$ inequalities gives $L(x)<R(x)$.
+
+*Case 2: exactly one index $i_{0}$ with $A_{i_{0}}(x)\le0$.* Put $u=x-4i_{0}\in[1,4]$. For every $i\ne i_{0}$ we have $A_{i}(x)>0$ and $B_{i}(x)=A_{i}(x)+2>0$.
+
+*Subcase 2a: $u\in[1,2]\cup[3,4]$.* Then $A_{i_{0}}=(u-1)(u-4)\le0$ and $B_{i_{0}}=(u-2)(u-3)\ge0$, so $L(x)\le0\le R(x)$. Equality $L(x)=R(x)$ would force $L(x)=R(x)=0$, i.e. simultaneously $A_{i_{0}}=0$ (that is $u\in\{1,4\}$) and $B_{i_{0}}=0$ (that is $u\in\{2,3\}$) — impossible. Hence $L(x)<R(x)$.
+
+*Subcase 2b: $u\in(2,3)$.* Then $A_{i_{0}}<0$ and $B_{i_{0}}<0$, so $L(x)<0$ and $R(x)<0$. For two negative numbers $L<R$ is equivalent to $\frac LR>1$, i.e.
+$$\frac{A_{i_{0}}}{B_{i_{0}}}\cdot\prod_{i\ne i_{0}}\frac{A_{i}}{B_{i}}\ >\ 1 . \tag{2}$$
+
+Bound the first factor. On $[2,3]$ the function $u^{2}-5u+4$ has its vertex at $u=\frac52$ and equals $-2$ at both endpoints, so $A_{i_{0}}\in\left[-\frac94,-2\right]$ and $\left|A_{i_{0}}\right|\ge2$. Also $\left|B_{i_{0}}\right|=(u-2)(3-u)\le\frac14$ by AM–GM. Both numbers are negative, so
+$$\frac{A_{i_{0}}}{B_{i_{0}}}=\frac{\left|A_{i_{0}}\right|}{\left|B_{i_{0}}\right|}\ \ge\ \frac{2}{1/4}=8 . \tag{3}$$
+
+Bound the remaining factors. Let $i\ne i_{0}$ and $j=\left|i_{0}-i\right|\ge1$. If $i_{0}-i=j>0$ then
+$$x-4i-1=4j+u-1>4j+1>0,\qquad x-4i-4=4j+u-4>4j-2>0,$$
+so $A_{i}>(4j+1)(4j-2)$. If $i_{0}-i=-j<0$ then
+$$4i+1-x=4j+1-u>4j-2>0,\qquad 4i+4-x=4j+4-u>4j+1>0,$$
+both factors of $A_{i}$ are negative and again $A_{i}>(4j-2)(4j+1)$. In both cases (1) gives
+$$B_{i}=A_{i}+2>(4j-2)(4j+1)+2=16j^{2}-4j=4j(4j-1)>0,$$
+hence
+$$\frac{A_{i}}{B_{i}}=1-\frac{2}{B_{i}}>1-\frac{2}{4j(4j-1)}=1-\frac{1}{2j(4j-1)}\ \ge\ 1-\frac{1}{6j^{2}}$$
+(using $4j-1\ge3j$ for $j\ge1$ at the end). For each $j$ there are at most two indices $i\ne i_{0}$ with $\left|i_{0}-i\right|=j$. Using the elementary inequality $\prod\left(1-x_{t}\right)\ge1-\sum x_{t}$ for $x_{t}\in[0,1]$ and the bound
+$$\sum_{j\ge1}\frac1{j^{2}}<1+\sum_{j\ge2}\frac{1}{j(j-1)}=1+1=2,$$
+we get
+$$\prod_{i\ne i_{0}}\frac{A_{i}}{B_{i}}\ >\ 1-2\sum_{j\ge1}\frac{1}{6j^{2}}\ >\ 1-\frac{2}{6}\cdot2=\frac13 . \tag{4}$$
+
+By (3) and (4) the left-hand side of (2) exceeds $8\cdot\frac13=\frac83>1$, as required. So $L(x)<R(x)$ for all real $x$ and the constructed equation has no real roots.
+
+Together with $k\ge2016$ this gives the answer $k=2016$. $\blacksquare$`,
   tags:["polynomials","signs on intervals","construction"] },
 
 "2017-1": { title:"Square root or plus three",

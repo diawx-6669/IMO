@@ -61,16 +61,35 @@ Answer: $3\mid n$.`,
 "2018-4": { title:"Red and blue stones",
   statement: String.raw`A site is any point $(x,y)$ in the plane such that $x$ and $y$ are both positive integers not exceeding $20$. Initially all $400$ sites are unoccupied. Amy and Ben take turns placing stones, with Amy going first. On her turn Amy places a new red stone on an unoccupied site so that the distance between any two sites occupied by red stones is not equal to $\sqrt5$. On his turn Ben places a new blue stone on any unoccupied site (with no restriction). They stop as soon as a player cannot move. Find the greatest $K$ such that Amy can guarantee placing at least $K$ red stones, no matter how Ben plays.`,
   answer: String.raw`$K=100$.`,
-  hints:[ String.raw`A distance of $\sqrt5$ between sites means a displacement of $(\pm1,\pm2)$ or $(\pm2,\pm1)$ — a knight's move.`,
-          String.raw`Split the $20\times20$ board into $4\times 4$ blocks and see how knight moves connect cells inside a block.`,
-          String.raw`The upper bound needs a strategy for Ben, the lower bound a strategy for Amy using a partition of the board into $100$ groups of four cells.`],
-  solution: String.raw`A distance of $\sqrt5$ means exactly that two red stones stand a knight's move apart.
+  hints:[ String.raw`A distance of $\sqrt5$ between sites means a displacement of $(\pm1,\pm2)$ or $(\pm2,\pm1)$ — a knight move.`,
+          String.raw`A knight move changes the parity of $x+y$. So the $200$ sites with even coordinate sum are pairwise safe — split them into $100$ pairs and always answer Ben inside the pair he just touched.`,
+          String.raw`For the upper bound, split the board into $100$ quadruples in which the knight moves form a $4$-cycle: then after Amy moves, Ben closes the opposite cell.`],
+  solution: String.raw`Two sites are at distance $\sqrt5$ exactly when they differ by $(\pm1,\pm2)$ or $(\pm2,\pm1)$, i.e. when they are a knight's move apart. Call such sites *adjacent*: no two red stones may stand on adjacent sites.
 
-*Amy's strategy (at least $100$).* Split the $20\times20$ board into $25$ blocks of size $4\times 4$. Inside each $4\times 4$ block single out four groups of four cells so that within each group any two cells are a knight's move apart (for instance the groups given by the coordinates modulo $2$ with a suitable shift). That gives $100$ groups of four cells in total. Amy keeps at most one red stone per group and, while a group still contains a cell safe for her, she takes it. A count shows that Ben cannot block more than $3$ cells of a group before Amy plays in it, so she manages to place a stone in each of the $100$ groups.
+*Amy can guarantee $100$ stones.* A knight's move changes the parity of the sum of the coordinates, so the set
+$$\mathcal{E}=\left\{(x,y)\ :\ 1\le x,y\le 20,\ x+y\ \text{even}\right\}$$
+of $200$ sites contains no adjacent pair at all — any of its sites may carry red stones simultaneously. Split $\mathcal{E}$ into $100$ pairs: in each column $x$ the sites of $\mathcal{E}$ occur every other row, there are exactly $10$ of them, and we group them into $5$ pairs of consecutive ones (1st with 2nd, 3rd with 4th, and so on); that is $20\cdot5=100$ pairs.
 
-*Ben's strategy (at most $100$).* Ben uses the same partition into $100$ knight-connected quadruples. Whenever Amy plays in a quadruple, Ben answers inside the same quadruple. Then Amy can place at most one stone per quadruple, i.e. at most $100$ red stones in total.
+Amy's strategy: she always plays inside $\mathcal{E}$, as follows.
+- If Ben's last move occupied a site of a pair that contains no red stone yet, Amy plays the other site of that pair. It is free: Ben took only one site of the pair and there was no red stone there.
+- Otherwise Amy plays in any pair both of whose sites are free.
 
-Answer: $K=100$.`,
+Invariant: after each of Amy's moves, every pair containing a blue stone also contains a red one. The first kind of move clearly preserves it; in the second case Ben's move was either outside $\mathcal{E}$ or into a pair that already holds a red stone, so no new "spoiled" pair appeared.
+
+The second kind of move is always available while Amy has fewer than $100$ stones: by the invariant a pair without a red stone has no blue stone either, hence is entirely free; after $t$ moves Amy occupies exactly $t$ pairs (at most one stone per pair), so exactly $100-t>0$ pairs are completely free. Thus Amy makes $100$ moves, all her stones lie in $\mathcal{E}$ and are therefore pairwise non-adjacent:
+$$K\ \ge\ 100 .$$
+
+*Ben can prevent a $101$st stone.* Split the board into $25$ blocks of size $4\times4$, and each block into four quadruples of sites; in the local coordinates $\{0,1,2,3\}^{2}$ of a block these are
+$$\left\{(0,0),(2,1),(3,3),(1,2)\right\},\quad \left\{(0,3),(1,1),(3,0),(2,2)\right\},$$
+$$\left\{(0,1),(1,3),(3,2),(2,0)\right\},\quad \left\{(0,2),(1,0),(3,1),(2,3)\right\}.$$
+They cover all $16$ sites of the block, so in total we get $25\cdot4=100$ quadruples covering all $400$ sites. In each quadruple, written in the order $v_{1},v_{2},v_{3},v_{4}$ above, a direct check shows that the adjacent pairs are exactly $v_{1}v_{2}$, $v_{2}v_{3}$, $v_{3}v_{4}$, $v_{4}v_{1}$ (a cycle of four knight moves), while the "opposite" pairs $v_{1}v_{3}$ and $v_{2}v_{4}$ are not adjacent — their squared distances are $18$, $2$ or $10$, never $5$.
+
+Ben's strategy: as soon as Amy places a red stone on a site $v$ of some quadruple, Ben places a blue stone on the opposite site of the same quadruple; if that site is already taken, he plays anywhere. After his move all four sites of that quadruple are unusable for Amy: $v$ is occupied, the two cycle-neighbours of $v$ are forbidden by the distance $\sqrt5$, and the opposite site is occupied (by this blue stone or an earlier one).
+
+Hence each quadruple carries at most one red stone and there are at most $100$ red stones in total:
+$$K\ \le\ 100 .$$
+
+Answer: $K=100$. $\blacksquare$`,
   tags:["game strategies","block partitions","knight moves"] },
 
 "2019-1": { title:"An equation over the integers",
@@ -141,23 +160,40 @@ Answer: $(k,n)=(1,1)$ and $(3,2)$.`,
 
 Prove that the process always terminates, and determine the average number of operations over all $2^{n}$ initial configurations.`,
   answer: String.raw`The average number of operations is $\dfrac{n(n+1)}{4}$.`,
-  hints:[ String.raw`Work out the small cases $n=1,2,3$ and count the steps for each configuration.`,
-          String.raw`A useful idea: pair the configurations up — look at the outermost coins and reduce to a smaller $n$.`,
-          String.raw`If the first and last coins differ, the process reduces to the one for $n-1$ coins; if they agree, exactly $n$ (or $0$) extra steps appear. That yields a recursion for the total number of steps.`],
-  solution: String.raw`*Termination and the answer (outline).* Write $T(C)$ for the number of operations starting from configuration $C$, and $S_{n}=\sum_{C}T(C)$ for the total over all $2^{n}$ configurations.
+  hints:[ String.raw`Compute the number of steps for every configuration with $n=1,2,3$ and try to guess a formula in terms of the positions of the $H$ letters.`,
+          String.raw`Look for a monovariant — a quantity that drops by exactly $1$ per operation. Consider the number of $H$ letters and the number of pairs "$T$ to the left of an $H$".`,
+          String.raw`Check that $\Phi=k+2\operatorname{inv}$ decreases by exactly $1$ per step, then average $\Phi$ over all $2^{n}$ configurations.`],
+  solution: String.raw`Write a configuration as a word $C=c_{1}c_{2}\dots c_{n}$ in the letters $H$ and $T$ and set
+$$k(C)=\#\left\{i\ :\ c_{i}=H\right\},\qquad \operatorname{inv}(C)=\#\left\{(a,b)\ :\ a<b,\ c_{a}=T,\ c_{b}=H\right\},$$
+$$\Phi(C)=k(C)+2\operatorname{inv}(C).$$
 
-The key observation concerns the first and last coins.
-- If the first is $T$ and the last is $H$, or the first is $H$ and the last is $T$, the process treats this pair in a way that reduces to the process on $n-1$ coins.
-- If the first and last coins agree, the process performs extra steps whose total over all configurations contributes $n\cdot 2^{n-2}$.
+*Lemma.* If $k(C)>0$, then one operation decreases $\Phi$ by exactly $1$.
 
-Carrying out this analysis carefully gives the recursion
-$$S_{n}=2S_{n-1}+n\cdot 2^{n-2},\qquad S_{1}=1 ,$$
-from which, by induction, $S_{n}=\dfrac{n(n+1)}{4}\cdot 2^{n}$, so the average number of operations is
-$$\frac{S_{n}}{2^{n}}=\frac{n(n+1)}{4}.$$
-Termination follows from the same analysis by induction on $n$: each reduced process is shorter.
+*Proof.* Let $k=k(C)>0$, so coin number $k$ gets turned over. Let $t$ be the number of $T$'s among $c_{1},\dots,c_{k-1}$ and $h$ the number of $H$'s among $c_{k+1},\dots,c_{n}$. Pairs in the definition of $\operatorname{inv}$ that avoid position $k$ are unchanged, so only pairs involving position $k$ matter.
 
-*Check for $n=1$:* the configurations $T$ ($0$ steps) and $H$ ($1$ step), average $\frac12=\frac{1\cdot2}{4}$ ✓.
-*For $n=2$:* $TT\to0$; $HT\to1$; $TH$: $k=1$ so flip the first, getting $HH$; then $k=2$, flip the second, getting $HT$; then $k=1$, getting $TT$ — $3$ steps; $HH\to 2$ steps. Average $\frac{0+1+3+2}{4}=\frac64=\frac{2\cdot3}{4}$ ✓.`,
+*Case $c_{k}=H$.* There are $k$ letters $H$ in total, one of them at position $k$, so there are $k-1-h$ of them among $c_{1},\dots,c_{k-1}$, whence
+$$t=(k-1)-(k-1-h)=h .$$
+Before the move position $k$ carries $H$ and contributes $t$ pairs (with the $T$'s on its left). Afterwards it carries $T$ and contributes $h$ pairs (with the $H$'s on its right). So $\Delta\operatorname{inv}=h-t=0$ and $\Delta k=-1$, i.e. $\Delta\Phi=-1$.
+
+*Case $c_{k}=T$.* Now there are $k-h$ letters $H$ among $c_{1},\dots,c_{k-1}$, whence
+$$t=(k-1)-(k-h)=h-1 .$$
+Before the move position $k$ carries $T$ and contributes $h$ pairs, afterwards it carries $H$ and contributes $t=h-1$ pairs. So $\Delta\operatorname{inv}=-1$, $\Delta k=+1$ and $\Delta\Phi=1+2\cdot(-1)=-1$. $\square$
+
+*Termination and the exact number of steps.* $\Phi$ is a non-negative integer, and $\Phi(C)=0$ is equivalent to $k(C)=0$ (if $k=0$ then automatically $\operatorname{inv}=0$), i.e. to the process having stopped. By the lemma every step decreases $\Phi$ by exactly one, so the process always stops and the number of operations starting from $C$ equals exactly
+$$\Phi(C)=k(C)+2\operatorname{inv}(C). \tag{1}$$
+Equivalently, if the $H$'s sit at positions $p_{1}<\dots<p_{k}$, then $\operatorname{inv}=\sum_{r}\left(p_{r}-r\right)$ and $\sum_{r=1}^{k}(2r-1)=k^{2}$, so the number of operations is
+$$2\left(p_{1}+\dots+p_{k}\right)-k^{2}.$$
+
+*Averaging.* Sum (1) over all $2^{n}$ configurations. Each position carries $H$ in exactly half of them, so
+$$\sum_{C}k(C)=n\cdot2^{n-1}.$$
+For a fixed pair $a<b$ there are exactly $2^{n-2}$ configurations with $c_{a}=T$ and $c_{b}=H$, and there are $\binom n2$ such pairs, so
+$$\sum_{C}\operatorname{inv}(C)=\binom n2\cdot 2^{n-2}.$$
+Altogether
+$$\sum_{C}\Phi(C)=n\cdot2^{n-1}+2\cdot\frac{n(n-1)}2\cdot2^{n-2}=2^{n-2}\left(2n+n(n-1)\right)=2^{n-2}n(n+1),$$
+and the average number of operations is
+$$\frac{2^{n-2}n(n+1)}{2^{n}}=\frac{n(n+1)}{4}. \qquad\blacksquare$$
+
+*Check.* $n=2$: $TT\to0$, $HT\to1$, $HH\to2$, $TH\to3$ (namely $TH\to HH\to HT\to TT$); the average is $\frac{0+1+2+3}{4}=\frac64=\frac{2\cdot3}{4}$ ✓. Formula (1) for $TH$: $k=1$, $\operatorname{inv}=1$, $\Phi=1+2=3$ ✓.`,
   tags:["invariants","recursion","averaging over configurations"] },
 
 "2020-2": { title:"An inequality with exponents",
@@ -191,18 +227,29 @@ $$\left(a+2b+3c+4d\right)a^{a}b^{b}c^{c}d^{d}\le\left(a+2b+3c+4d\right)Q<s^{3}=1
 
 Determine the smallest positive integer $k$ for which one can guarantee that there are two stations linked by both companies.`,
   answer: String.raw`$k=n^{2}-n+1$.`,
-  hints:[ String.raw`Reformulate: the cars of a company define a partial order; "linked" means a path exists.`,
-          String.raw`For a construction with $k=n^{2}-n$, split the stations into $n$ blocks of $n$ and let the companies link "inside blocks" and "across blocks" respectively.`,
-          String.raw`For the lower bound use that the cars of a company form disjoint chains, and apply the pigeonhole principle to the number of chains (Dilworth / Erdős–Szekeres).`],
-  solution: String.raw`*Outline.*
+  hints:[ String.raw`All starting points of a company are different and so are all finishing points. What does that say about the degrees of the stations?`,
+          String.raw`So a company’s cars split into disjoint chains, and with $k$ cars there are exactly $n^{2}-k$ chains. "Linked" means "in the same chain".`,
+          String.raw`For $k=n^{2}-n+1$ each company has $n-1$ chains; attach to each station the pair of its chains and use pigeonhole. For a counterexample with $k=n^{2}-n$, make the $A$-chains blocks of consecutive stations and the $B$-chains the residue classes modulo $n$.`],
+  solution: String.raw`Number the stations $1,2,\dots,n^{2}$ in increasing order of altitude.
 
-The cars of a company form a directed graph which is a union of paths: the condition "starts higher, finishes higher" means the cars are ordered consistently, and each station has at most one incoming and at most one outgoing car. So the cars of a company split the stations into disjoint chains, and the company links two stations exactly when they lie in one chain in the right order.
+*The structure of one company's network.* Suppose a company has $k$ cable cars. All starting points are different and all finishing points are different, so every station is the start of at most one car and the finish of at most one. Every car goes upwards, so there are no cycles. Hence the cars split all $n^{2}$ stations into disjoint *chains*: sequences of stations going strictly upwards and joined by consecutive cars (a chain may consist of a single station). The company links two stations if and only if they lie in the same chain. If there are $m$ chains then, since each car decreases the number of components by one and we start with $n^{2}$ of them,
+$$k=n^{2}-m,\qquad\text{i.e.}\qquad m=n^{2}-k . \tag{1}$$
 
-*Lower bound ($k=n^{2}-n$ is not enough).* Split the stations by altitude into $n$ blocks of $n$. Company $A$ builds chains inside the blocks (each block gives a chain of $n$ stations, i.e. $n-1$ cars, for $n(n-1)=n^{2}-n$ in total). Company $B$ builds chains across blocks: the $i$-th stations of the different blocks are joined into a chain (again $n(n-1)$ cars). Any two stations linked by $A$ lie in one block; any two linked by $B$ lie in different blocks. So no pair is linked by both.
+*For $k=n^{2}-n+1$ such a pair always exists.* By (1) each company has exactly $m=n^{2}-k=n-1$ chains. Attach to every station the pair "(its $A$-chain, its $B$-chain)"; there are at most $(n-1)^{2}$ distinct such pairs. Since
+$$n^{2}>(n-1)^{2},$$
+the pigeonhole principle gives two distinct stations with the same pair. They lie in one chain of company $A$ and in one chain of company $B$, i.e. they are linked by both companies.
 
-*Upper bound ($k=n^{2}-n+1$ suffices).* If a company has $k=n^{2}-n+1$ cars, its chains cover the stations with a large total length: with $m$ chains the number of cars is $n^{2}-m$, so $m\le n-1$. Hence both companies partition the $n^{2}$ stations into at most $n-1$ chains each. Intersecting the two partitions and applying the pigeonhole principle (two chains, one from each company, must share at least two stations, since $n^{2}>(n-1)^{2}$) produces two stations linked by both companies.
+*For $k\le n^{2}-n$ there may be no such pair.* We give an example for $k=n^{2}-n$; for smaller $k$ simply delete superfluous cars — deleting preserves the distinctness of starts and finishes and the order condition, and can only destroy links.
 
-Answer: $k=n^{2}-n+1$.`,
+Company $A$: the cars $t\to t+1$ for all $t\in\{1,\dots,n^{2}-1\}$ not divisible by $n$. There are exactly $n^{2}-n$ of them; the starts are distinct, the finishes are distinct, and "a car that starts higher also finishes higher" holds because $t<t'$ implies $t+1<t'+1$. The chains of company $A$ are the blocks of consecutive stations
+$$\{1,\dots,n\},\quad\{n+1,\dots,2n\},\quad\dots,\quad\{n^{2}-n+1,\dots,n^{2}\} .$$
+
+Company $B$: the cars $t\to t+n$ for all $t\in\{1,\dots,n^{2}-n\}$. Again there are exactly $n^{2}-n$ of them and the same conditions hold. The chains of company $B$ are the residue classes modulo $n$:
+$$\{1,n+1,2n+1,\dots\},\quad\{2,n+2,\dots\},\quad\dots,\quad\{n,2n,\dots,n^{2}\} .$$
+
+Two distinct stations are linked by $A$ only if they lie in the same block, i.e. differ by less than $n$; they are linked by $B$ only if they are congruent modulo $n$, i.e. differ by a non-zero multiple of $n$. Both cannot hold at once, so for $k=n^{2}-n$ no pair is linked by both companies.
+
+Answer: $k=n^{2}-n+1$. $\blacksquare$`,
   tags:["partial orders","chains and antichains","pigeonhole principle"] },
 
 "2020-5": { title:"A deck of cards with means",

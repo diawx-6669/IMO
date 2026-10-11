@@ -11,7 +11,7 @@
   var LANGS = window.IMO_I18N || {};
   var L10N = window.IMO_L10N || {};
   var EXAM_SECONDS = 4 * 3600 + 30 * 60;
-  var VIEWS = ["plan", "diag", "problems", "train", "arsenal", "progress"];
+  var VIEWS = ["plan", "diag", "problems", "train", "arsenal", "progress", "board", "account"];
 
   DATA.sort(function (a, b) { return a.year - b.year || a.num - b.num; });
 
@@ -213,7 +213,7 @@
   }
 
   /* ---------------- состояние ---------------- */
-  var state = { view: "plan", diag: null, topics: {}, tiers: {}, status: "all", sort: "year", q: "", current: null, exam: null, legend: false };
+  var state = { view: "plan", diag: null, topics: {}, tiers: {}, status: "all", sort: "year", q: "", current: null, exam: null, legend: false, board: "pts" };
 
   /* ---------------- тема ---------------- */
   function applyTheme() {
@@ -618,7 +618,7 @@
     P.log = P.log.filter(function (r) { return !(r.id === id && r.d === today()); });
     P.log.push({ d: today(), id: id, s: v });
     if (P.log.length > 2000) P.log = P.log.slice(-2000);
-    save(); renderList(); renderProblem();
+    save(); renderList(); renderProblem(); pushStats();
     toast(t("pr.score.saved", { s: v }));
   }
   function setScoreSilent(id, v) {
@@ -1473,6 +1473,307 @@
   }
 
   /* ---------------- переключение разделов ---------------- */
+  /* ---------------- профиль и рейтинг ---------------- */
+  var TIER_W = { 1: 1, 2: 2, 3: 3 };
+  function myStats() {
+    var ids = Object.keys(P.scores);
+    var pts = 0;
+    ids.forEach(function (id) {
+      var p = byId(id);
+      pts += P.scores[id] * (p ? (TIER_W[p.tier] || 1) : 1);
+    });
+    var m = currentModule();
+    return {
+      pts: pts,
+      rated: ids.length,
+      solved: ids.filter(function (id) { return P.scores[id] >= 5; }).length,
+      full: ids.filter(function (id) { return P.scores[id] === 7; }).length,
+      streak: streak(),
+      best: maxStreak(),
+      mod: m ? PLAN.indexOf(m) + 1 : PLAN.length,
+      diag: P.diag ? P.diag.overall : null
+    };
+  }
+  function maxStreak() {
+    var days = Object.keys(P.log.reduce(function (a, r) { a[r.d] = 1; return a; }, {})).sort();
+    var best = 0, run = 0, prev = null;
+    days.forEach(function (d) {
+      run = (prev && daysBetween(prev, d) === 1) ? run + 1 : 1;
+      prev = d; if (run > best) best = run;
+    });
+    return best;
+  }
+  var pushTimer = null;
+  function pushStats() {                           // отправка своих показателей, с задержкой
+    if (!window.IMO_CLOUD) return;
+    if (pushTimer) clearTimeout(pushTimer);
+    pushTimer = setTimeout(function () {
+      pushTimer = null;
+      window.IMO_CLOUD.save(myStats())["catch"](function () { });
+    }, 1500);
+  }
+  function cloudState() {
+    return window.IMO_CLOUD ? window.IMO_CLOUD.state() : { mode: "local", ready: true, rows: [], count: 0, row: null, canWrite: false, isOwner: false, note: "local" };
+  }
+  function ago(iso) {
+    if (!iso) return "—";
+    var d = daysBetween(String(iso).slice(0, 10), today());
+    if (!(d >= 0)) return fmtDate(String(iso).slice(0, 10));
+    if (d === 0) return t("bd.today");
+    if (d > 60) return fmtDate(String(iso).slice(0, 10));
+    return t("bd.days", { n: d });
+  }
+  function modeNote(parent) {
+    var C = cloudState();
+    var code = C.note || (C.mode === "artifact" ? "artifact" : C.mode === "server" ? "server" : "local");
+    var n = el("div", "note" + (code === "local" || code === "readonly" || code === "anon" || code === "offline" ? " warn" : ""));
+    n.textContent = t("ac.mode." + code);
+    parent.appendChild(n);
+  }
+
+  function saveFile(name, text, mime) {           // в артефакте файл отдаёт платформа, иначе обычная ссылка
+    function viaLink() {
+      var blob = new Blob([text], { type: mime });
+      var a = el("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+    }
+    if (window.claude && typeof window.claude.use === "function") {
+      window.claude.use("downloads").then(function (d) {
+        if (!d) return viaLink();
+        d.save({ filename: name, data: text })["catch"](function (e) {
+          if (!e || e.code !== "declined") viaLink();
+        });
+      }, viaLink);
+      return;
+    }
+    viaLink();
+  }
+
+  function renderAccount() {
+    var v = $("#view-account");
+    v.innerHTML = "";
+    var C = cloudState();
+    var wrap = el("div", "wrap");
+    wrap.appendChild(el("h1", null, t("ac.title")));
+    wrap.appendChild(el("p", "lead", t("ac.lead")));
+    modeNote(wrap);
+
+    var st = myStats();
+    var card = el("div", "panel");
+    if (C.row) {
+      var h = el("div", "idrow");
+      var av = el("div", "avatar", C.row.nick.slice(0, 1).toUpperCase());
+      h.appendChild(av);
+      var box = el("div");
+      var nm = el("div", "idname"); nm.textContent = t("ac.in", { nick: C.row.nick });
+      box.appendChild(nm);
+      box.appendChild(el("div", "secnote", t("ac.since", { d: fmtDate(String(C.row.joined).slice(0, 10)) })));
+      h.appendChild(box);
+      card.appendChild(h);
+    } else {
+      card.appendChild(el("h3", null, t("ac.join")));
+    }
+
+    var form = el("div", "signin");
+    var lab = el("label", null, t("ac.nick"));
+    lab.setAttribute("for", "nickIn");
+    var inp = el("input");
+    inp.id = "nickIn"; inp.type = "text"; inp.maxLength = 24;
+    inp.placeholder = t("ac.nick.ph");
+    inp.value = C.row ? C.row.nick : "";
+    var go = el("button", "btn primary", C.row ? t("ac.rename") : t("ac.join"));
+    function submit() {
+      go.disabled = true;
+      window.IMO_CLOUD.signIn(inp.value, myStats()).then(function () {
+        toast(t("ac.saved")); renderAccount();
+      }, function (e) {
+        go.disabled = false;
+        toast(e && e.code === "short" ? t("ac.err.short") : t("ac.err", { e: (e && e.code) || "?" }));
+        if (e && e.code !== "short") renderAccount();
+      });
+    }
+    go.addEventListener("click", submit);
+    inp.addEventListener("keydown", function (ev) { if (ev.key === "Enter") submit(); });
+    var fld = el("div");
+    fld.appendChild(lab); fld.appendChild(inp);
+    form.appendChild(fld); form.appendChild(go);
+    card.appendChild(form);
+    card.appendChild(el("div", "note", t("ac.nick.note")));
+    wrap.appendChild(card);
+
+    var mine = el("div", "panel");
+    mine.appendChild(el("h3", null, t("ac.mine")));
+    var stats = el("div", "stats three");
+    function stat(val, lbl) {
+      var s = el("div", "stat");
+      s.appendChild(el("div", "v num", val));
+      s.appendChild(el("div", "l", lbl));
+      return s;
+    }
+    stats.appendChild(stat(String(st.pts), t("bd.pts")));
+    stats.appendChild(stat(String(st.streak), t("bd.streak")));
+    stats.appendChild(stat(st.solved + " / " + st.rated, t("bd.solved")));
+    mine.appendChild(stats);
+    mine.appendChild(el("div", "note", t("ac.sync")));
+    wrap.appendChild(mine);
+
+    if (C.row) {
+      var out = el("div", "panel");
+      var ob = el("button", "btn", t("ac.leave"));
+      ob.addEventListener("click", function () {
+        ob.disabled = true;
+        window.IMO_CLOUD.signOut().then(function () { toast(t("ac.removed")); renderAccount(); },
+          function () { ob.disabled = false; toast(t("ac.err", { e: "?" })); });
+      });
+      out.appendChild(ob);
+      out.appendChild(el("div", "note", t("ac.leave.note")));
+      wrap.appendChild(out);
+    }
+
+    if (C.isOwner) wrap.appendChild(adminPanel(C));
+    v.appendChild(wrap);
+  }
+
+  function adminPanel(C) {
+    var box = el("div", "panel admin");
+    box.appendChild(el("h3", null, t("ad.title")));
+    box.appendChild(el("div", "secnote", t("ad.lead")));
+    var rows = C.rows.slice();
+    var active = rows.filter(function (r) { return daysBetween(String(r.seen).slice(0, 10), today()) <= 7; }).length;
+    var sum = rows.reduce(function (a, r) { return a + r.pts; }, 0);
+    var sorted = rows.map(function (r) { return r.pts; }).sort(function (a, b) { return a - b; });
+    var med = sorted.length ? (sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : Math.round((sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2)) : 0;
+    var stats = el("div", "stats");
+    function stat(val, lbl) {
+      var s = el("div", "stat");
+      s.appendChild(el("div", "v num", val));
+      s.appendChild(el("div", "l", lbl));
+      return s;
+    }
+    stats.appendChild(stat(String(C.count), t("ad.count")));
+    stats.appendChild(stat(String(active), t("ad.active")));
+    stats.appendChild(stat(String(sum), t("ad.sumpts")));
+    stats.appendChild(stat(String(med), t("ad.median")));
+    box.appendChild(stats);
+
+    if (!rows.length) { box.appendChild(el("div", "note", t("ad.empty"))); return box; }
+
+    rows.sort(function (a, b) { return String(b.joined).localeCompare(String(a.joined)); });
+    var tb = el("table", "board");
+    var head = el("tr");
+    [t("bd.nick"), t("ad.tbl.joined"), t("ad.tbl.seen"), t("bd.pts"), t("bd.streak"), t("bd.rated")].forEach(function (h) {
+      head.appendChild(el("th", null, h));
+    });
+    var thead = el("thead"); thead.appendChild(head); tb.appendChild(thead);
+    var body = el("tbody");
+    rows.forEach(function (r) {
+      var tr = el("tr");
+      var td = el("td", "who"); td.textContent = r.nick; tr.appendChild(td);
+      tr.appendChild(el("td", "num", fmtDate(String(r.joined).slice(0, 10))));
+      tr.appendChild(el("td", "num", ago(r.seen)));
+      tr.appendChild(el("td", "num", String(r.pts)));
+      tr.appendChild(el("td", "num", String(r.streak)));
+      tr.appendChild(el("td", "num", r.rated + "/" + DATA.length));
+      body.appendChild(tr);
+    });
+    tb.appendChild(body);
+    var sc = el("div", "tscroll"); sc.appendChild(tb); box.appendChild(sc);
+
+    var csv = el("button", "btn", t("ad.csv"));
+    csv.addEventListener("click", function () {
+      var lines = [["nick", "joined", "last_active", "points", "streak", "best_streak", "rated", "solved", "full", "module", "diagnostic"].join(",")];
+      rows.forEach(function (r) {
+        lines.push([r.nick.replace(/[",\n]/g, " "), r.joined, r.seen, r.pts, r.streak, r.best, r.rated, r.solved, r.full, r.mod, r.diag == null ? "" : r.diag].join(","));
+      });
+      saveFile("imo-students.csv", lines.join("\n"), "text/csv;charset=utf-8");
+    });
+    box.appendChild(csv);
+    return box;
+  }
+
+  function renderBoard() {
+    var v = $("#view-board");
+    v.innerHTML = "";
+    if (window.IMO_CLOUD) window.IMO_CLOUD.listen();
+    var C = cloudState();
+    var wrap = el("div", "wrap");
+    wrap.appendChild(el("h1", null, t("bd.title")));
+    wrap.appendChild(el("p", "lead", t("bd.lead")));
+    modeNote(wrap);
+
+    var head = el("div", "boardhead");
+    var seg = el("div", "seg");
+    [["pts", "bd.by.pts"], ["streak", "bd.by.streak"], ["solved", "bd.by.solved"]].forEach(function (pair) {
+      var b = el("button", "segbtn" + (state.board === pair[0] ? " on" : ""), t(pair[1]));
+      b.addEventListener("click", function () { state.board = pair[0]; renderBoard(); });
+      seg.appendChild(b);
+    });
+    head.appendChild(seg);
+    var cnt = el("div", "secnote"); cnt.textContent = t("bd.count", { n: C.count });
+    head.appendChild(cnt);
+    wrap.appendChild(head);
+
+    if (!C.rows.length) {
+      var empty = el("div", "panel");
+      empty.appendChild(el("p", null, t("bd.empty")));
+      var jb = el("button", "btn primary", t("bd.join"));
+      jb.addEventListener("click", function () { switchView("account"); });
+      empty.appendChild(jb);
+      wrap.appendChild(empty);
+      v.appendChild(wrap);
+      return;
+    }
+
+    var key = state.board;
+    var rows = C.rows.slice().sort(function (a, b) {
+      if (b[key] !== a[key]) return b[key] - a[key];
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      return String(a.joined).localeCompare(String(b.joined));
+    });
+
+    var tb = el("table", "board");
+    var hr = el("tr");
+    ["#", t("bd.nick"), t("bd.pts"), t("bd.streak"), t("bd.solved"), t("bd.seen")].forEach(function (h, i) {
+      var th = el("th", i === 0 ? "rank" : null, h);
+      th.setAttribute("scope", "col");
+      hr.appendChild(th);
+    });
+    var thead = el("thead"); thead.appendChild(hr); tb.appendChild(thead);
+    var body = el("tbody");
+    var place = 0, prev = null;
+    rows.forEach(function (r, i) {
+      if (prev === null || r[key] !== prev) place = i + 1;
+      prev = r[key];
+      var tr = el("tr", C.row && r.id === C.row.id ? "me" : null);
+      tr.appendChild(el("td", "rank num" + (place <= 3 ? " top" : ""), String(place)));
+      var who = el("td", "who");
+      var inn = el("div", "whoin");
+      inn.appendChild(el("div", "avatar sm", r.nick.slice(0, 1).toUpperCase()));
+      var nm = el("span", "whoname"); nm.textContent = r.nick; inn.appendChild(nm);
+      if (C.row && r.id === C.row.id) inn.appendChild(el("span", "chip you", t("bd.you")));
+      who.appendChild(inn);
+      tr.appendChild(who);
+      tr.appendChild(el("td", "num" + (key === "pts" ? " key" : ""), String(r.pts)));
+      tr.appendChild(el("td", "num" + (key === "streak" ? " key" : ""), String(r.streak)));
+      tr.appendChild(el("td", "num" + (key === "solved" ? " key" : ""), r.solved + "/" + r.rated));
+      tr.appendChild(el("td", "num", ago(r.seen)));
+      body.appendChild(tr);
+    });
+    tb.appendChild(body);
+    var sc = el("div", "tscroll"); sc.appendChild(tb); wrap.appendChild(sc);
+
+    var rb = el("button", "btn", t("bd.refresh"));
+    rb.addEventListener("click", function () {
+      rb.disabled = true;
+      window.IMO_CLOUD.refresh().then(function () { renderBoard(); }, function () { rb.disabled = false; });
+    });
+    wrap.appendChild(rb);
+    v.appendChild(wrap);
+  }
+
   function switchView(name) {
     state.view = name;
     VIEWS.forEach(function (n) {
@@ -1485,6 +1786,8 @@
     if (name === "arsenal") renderArsenal();
     if (name === "progress") renderProgress();
     if (name === "train") renderTrain();
+    if (name === "board") renderBoard();
+    if (name === "account") renderAccount();
     try { location.hash = name; } catch (e) { }
     window.scrollTo(0, 0);
   }
@@ -1547,6 +1850,13 @@
     buildFilters();
     renderList();
     renderProblem();
+    if (window.IMO_CLOUD) {
+      window.IMO_CLOUD.on(function () {
+        if (state.view === "board") renderBoard();
+        if (state.view === "account") renderAccount();
+      });
+      window.IMO_CLOUD.init().then(function () { pushStats(); }, function () { });
+    }
     var h = (location.hash || "").replace("#", "");
     switchView(VIEWS.indexOf(h) >= 0 ? h : (Object.keys(P.scores).length ? "problems" : "plan"));
     $("#boot").hidden = true;

@@ -479,6 +479,67 @@ footer.foot{border-top:1px solid var(--line);margin-top:44px;padding:18px 0 0;fo
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 /* ---------- узкие экраны ---------- */
+/* ---------- профиль и рейтинг ---------- */
+.note.warn{border-left-color:var(--mark-A)}
+.idrow{display:flex;gap:12px;align-items:center;margin-bottom:4px}
+.idname{font-family:var(--f-display);font-size:18px;letter-spacing:-.01em}
+.avatar{
+  width:38px;height:38px;border-radius:999px;flex:none;
+  display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);
+  font-family:var(--f-mono);font-size:16px;font-weight:600;
+}
+.avatar.sm{width:24px;height:24px;font-size:11px}
+.signin{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:14px}
+.signin label{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:5px}
+.signin input{
+  border:1px solid var(--line);border-radius:var(--r-ctl);background:var(--paper);color:var(--ink);
+  font:inherit;font-size:14.5px;padding:8px 11px;width:230px;max-width:100%;transition:border-color var(--dur);
+}
+.signin input:hover{border-color:var(--line-strong)}
+.signin input:focus-visible{border-color:var(--accent)}
+.signin input::placeholder{color:var(--muted)}
+.signin > div{min-width:0}
+
+.boardhead{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:22px 0 10px}
+.boardhead .secnote{margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-ctl);overflow:hidden}
+.segbtn{
+  background:var(--surface);border:none;border-right:1px solid var(--line);
+  padding:6px 12px;font:inherit;font-size:13px;color:var(--ink-soft);cursor:pointer;
+  transition:background var(--dur),color var(--dur);
+}
+.segbtn:last-child{border-right:none}
+.segbtn:hover{background:var(--surface-2);color:var(--ink)}
+.segbtn.on{background:var(--accent);color:var(--accent-ink);font-weight:500}
+
+.tscroll{overflow-x:auto;margin-top:6px;-webkit-overflow-scrolling:touch}
+table.board{border-collapse:collapse;width:100%;font-size:14px;min-width:460px}
+table.board th{
+  text-align:right;font-size:10.5px;font-weight:500;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;padding:0 10px 7px;white-space:nowrap;
+  border-bottom:1px solid var(--line-strong);
+}
+table.board th:nth-child(1),table.board th:nth-child(2){text-align:left}
+table.board td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.board td.who{text-align:left;white-space:normal;width:99%}
+table.board th:nth-child(2){width:99%}
+table.board .whoin{display:flex;gap:8px;align-items:center;min-width:0}
+table.board .whoname{overflow-wrap:anywhere}
+table.board td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+table.board td.num.key{color:var(--ink);font-weight:600}
+table.board td.rank{width:2.6em;color:var(--muted)}
+table.board td.rank.top{color:var(--accent);font-weight:600}
+table.board tbody tr:hover{background:var(--surface-2)}
+table.board tr.me{background:var(--accent-soft)}
+table.board tr.me:hover{background:var(--accent-soft)}
+.chip.you{
+  cursor:default;font-size:10.5px;padding:1px 7px;
+  background:var(--accent);border-color:var(--accent);color:var(--accent-ink);
+}
+.panel.admin{border-color:var(--line-strong)}
+.panel.admin .stats{margin:14px 0 4px;grid-template-columns:repeat(4,1fr)}
+.panel.admin table.board{font-size:13px;min-width:520px}
+
 @media (max-width:880px){
   .split{grid-template-columns:1fr;min-height:0}
   .rail{border-right:none;border-bottom:1px solid var(--line);position:static;height:auto}
@@ -502,4 +563,11 @@ footer.foot{border-top:1px solid var(--line);margin-top:44px;padding:18px 0 0;fo
   .statement{font-size:16px;padding:15px 16px}
   .stagehead{flex-wrap:wrap}
   .exam-slot{grid-template-columns:1fr;gap:8px}
+  .signin input{width:100%}
+  .panel.admin .stats{grid-template-columns:repeat(2,1fr)}
+  .stats.three{grid-template-columns:repeat(3,1fr)}
+  .stats.three .stat{padding:12px 10px}
+  .stats.three .stat .v{font-size:21px}
+  .signin{gap:10px}
+  .signin > div{flex:1 1 100%}
 }

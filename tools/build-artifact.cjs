@@ -22,9 +22,10 @@ const data = [
   'data/problems-1.js','data/problems-2.js','data/problems-3.js','data/problems-4.js','data/problems-5.js',
   'data/techniques.js','data/plan.js',
   'data/en/problems-1.js','data/en/problems-2.js','data/en/problems-3.js','data/en/problems-4.js','data/en/problems-5.js',
-  'data/en/techniques.js'
+  'data/en/techniques.js',
+  'data/backend.js'
 ].map(read).join('\n');
-const app = read('assets/app.js');
+const app = read('assets/cloud.js') + '\n' + read('assets/app.js');
 
 /* разметка: берём тело index.html без <script src> и без <link> */
 const html = read('index.html');
