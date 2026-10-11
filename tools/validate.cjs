@@ -7,9 +7,11 @@ require('../data/techniques.js');
 try { require('../data/en/techniques.js'); } catch (e) {}
 ['ru','en','uk','es'].forEach(l => { try { require('../data/lang/' + l + '.js'); } catch (e) {} });
 try { require('../data/plan.js'); } catch (e) {}
+try { require('../data/diagnostic.js'); } catch (e) {}
 const DATA = window.IMO_DATA, TECH = window.IMO_TECHNIQUES;
 const EN = (window.IMO_L10N && window.IMO_L10N.en) || { problems: {}, tech: {} };
 const I18N = window.IMO_I18N || {}, PLAN = window.IMO_PLAN || [];
+const DIAG = window.IMO_DIAGNOSTIC || { recognition: [] };
 
 let errors = [], mathCount = 0, texts = 0;
 
@@ -101,6 +103,30 @@ PLAN.forEach(m => {
 inPlan.filter((x, i) => inPlan.indexOf(x) !== i).forEach(x => errors.push('plan: дубль задачи ' + x));
 DATA.filter(p => inPlan.indexOf(p.id) < 0).forEach(p => errors.push('plan: задача ' + p.id + ' не входит в маршрут'));
 
+// --- диагностика ---
+const techFor = id => TECH.filter(t => (t.problems || []).indexOf(id) >= 0).map(t => t.id);
+const diagTopics = {};
+DIAG.recognition.forEach(it => {
+  const base = DATA.filter(p => p.id === it.problem)[0];
+  if (!base) { errors.push('diag: нет задачи ' + it.problem); return; }
+  diagTopics[base.topic] = (diagTopics[base.topic] || 0) + 1;
+  const my = techFor(it.problem);
+  if (my.indexOf(it.correct) < 0) errors.push('diag ' + it.problem + ': верный ответ ' + it.correct + ' не связан с задачей');
+  (it.options || []).forEach(o => {
+    if (!TECH.some(t => t.id === o)) errors.push('diag ' + it.problem + ': нет приёма ' + o);
+    if (my.indexOf(o) >= 0) errors.push('diag ' + it.problem + ': отвлекающий вариант ' + o + ' на самом деле подходит');
+  });
+  if ((it.options || []).length !== 3) errors.push('diag ' + it.problem + ': должно быть 3 отвлекающих варианта');
+  ['ru', 'en'].forEach(l => { if (!it.why || !it.why[l]) errors.push('diag ' + it.problem + ': нет пояснения (' + l + ')'); });
+  checkText('diag/' + it.problem + '/why.ru', it.why && it.why.ru);
+  checkText('diag/' + it.problem + '/why.en', it.why && it.why.en);
+});
+Object.keys(diagTopics).forEach(k => {
+  if (diagTopics[k] !== DIAG.perTopic) errors.push('diag: в разделе ' + k + ' вопросов ' + diagTopics[k] + ', а ожидается ' + DIAG.perTopic);
+});
+PLAN.forEach(m => { if (!'ACGN'.includes(m.topic || '')) errors.push('plan ' + m.id + ': не указан раздел'); });
+
+console.log('вопросов диагностики: ' + DIAG.recognition.length + ' | по разделам: ' + JSON.stringify(diagTopics));
 console.log('языков интерфейса: ' + Object.keys(I18N).length + ' | модулей маршрута: ' + PLAN.length);
 console.log('английских задач: ' + Object.keys(EN.problems).length + '/' + DATA.length +
   (missingEn.length ? ' | нет перевода: ' + missingEn.length : '') +

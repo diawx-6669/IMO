@@ -18,6 +18,7 @@
   </div>
   <nav class="tabs" role="tablist" aria-label="Sections">
     <button id="tab-plan" role="tab" aria-selected="true"></button>
+    <button id="tab-diag" role="tab" aria-selected="false"></button>
     <button id="tab-problems" role="tab" aria-selected="false"></button>
     <button id="tab-train" role="tab" aria-selected="false"></button>
     <button id="tab-arsenal" role="tab" aria-selected="false"></button>
@@ -35,6 +36,7 @@
 
 <main>
   <section id="view-plan" class="view"></section>
+  <section id="view-diag" class="view" hidden></section>
 
   <section id="view-problems" class="view" hidden>
     <div class="split" id="split" data-pane="list">
@@ -67,6 +69,7 @@
 <script src="data/problems-5.js"></script>
 <script src="data/techniques.js"></script>
 <script src="data/plan.js"></script>
+<script src="data/diagnostic.js"></script>
 <script src="data/en/problems-1.js"></script>
 <script src="data/en/problems-2.js"></script>
 <script src="data/en/problems-3.js"></script>

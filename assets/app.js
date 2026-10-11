@@ -7,16 +7,17 @@
   var DATA = (window.IMO_DATA || []).slice();
   var TECH = (window.IMO_TECHNIQUES || []).slice();
   var PLAN = (window.IMO_PLAN || []).slice();
+  var DIAG = (window.IMO_DIAGNOSTIC || { recognition: [] });
   var LANGS = window.IMO_I18N || {};
   var L10N = window.IMO_L10N || {};
   var EXAM_SECONDS = 4 * 3600 + 30 * 60;
-  var VIEWS = ["plan", "problems", "train", "arsenal", "progress"];
+  var VIEWS = ["plan", "diag", "problems", "train", "arsenal", "progress"];
 
   DATA.sort(function (a, b) { return a.year - b.year || a.num - b.num; });
 
   /* ---------------- хранилище ---------------- */
   var KEY = "imo-workbench-v1";
-  var P = { scores: {}, notes: {}, hints: {}, time: {}, last: {}, log: [], exams: [], theme: "", lang: "", seen: false };
+  var P = { scores: {}, notes: {}, hints: {}, time: {}, last: {}, log: [], exams: [], diag: null, theme: "", lang: "", seen: false };
   function load() {
     try {
       var raw = localStorage.getItem(KEY);
@@ -27,6 +28,7 @@
         if (o && Array.isArray(o.exams)) P.exams = o.exams;
         if (o && typeof o.theme === "string") P.theme = o.theme;
         if (o && typeof o.lang === "string") P.lang = o.lang;
+        if (o && o.diag) P.diag = o.diag;
         if (o && o.seen) P.seen = true;
       }
     } catch (e) { /* приватный режим — работаем без сохранения */ }
@@ -83,8 +85,14 @@
     if (txt != null) n.textContent = txt;
     return n;
   }
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   function today() { return new Date().toISOString().slice(0, 10); }
+  function fmtDate(iso) {                       // ISO -> формат, принятый в языке интерфейса
+    if (!iso) return "";
+    try { return new Date(iso + "T00:00:00").toLocaleDateString(LANG, { day: "numeric", month: "long", year: "numeric" }); }
+    catch (e) { return iso; }
+  }
   function daysBetween(a, b) { return Math.round((Date.parse(b) - Date.parse(a)) / 86400000); }
   function hhmmss(sec) {
     sec = Math.max(0, Math.round(sec));
@@ -133,6 +141,24 @@
   function setHTML(node, text) { node.innerHTML = fmt(text); return node; }
   function inlineHTML(node, text) { node.innerHTML = fmt(text).replace(/^<p>|<\/p>$/g, ""); return node; }
 
+  /* семисегментный индикатор балла — общий мотив интерфейса */
+  function meter(score, withNum) {
+    var w = el("span", "meter" + (score == null ? "" : score >= 5 ? " good" : score >= 3 ? " mid" : " low"));
+    w.title = score == null ? t("pr.sub.unrated") : t("pr.sub.score", { s: score });
+    for (var i = 1; i <= 7; i++) {
+      var seg = el("i");
+      if (score != null && i <= score) seg.className = "on";
+      w.appendChild(seg);
+    }
+    if (withNum) {
+      var n = el("span", "metern num", score == null ? "–/7" : score + "/7");
+      var box = el("span", "meterbox");
+      box.appendChild(w); box.appendChild(n);
+      return box;
+    }
+    return w;
+  }
+
   function officialURL(p) { return "https://www.imo-official.org/problems/" + p.year + "/"; }
   function aopsURL(p) { return "https://artofproblemsolving.com/wiki/index.php/" + p.year + "_IMO_Problems"; }
 
@@ -159,8 +185,16 @@
     return { done: done, total: m.problems.length, complete: done === m.problems.length };
   }
   function currentModule() {
-    for (var i = 0; i < PLAN.length; i++) if (!moduleStats(PLAN[i]).complete) return PLAN[i];
-    return null;
+    var open = PLAN.filter(function (m) { return !moduleStats(m).complete; });
+    if (!open.length) return null;
+    var stage = Math.min.apply(null, open.map(function (m) { return m.stage; }));
+    var inStage = open.filter(function (m) { return m.stage === stage; });
+    var weak = P.diag && P.diag.weak;                 // диагностика двигает слабый раздел вперёд
+    if (weak) {
+      var pref = inStage.filter(function (m) { return m.topic === weak; });
+      if (pref.length) return pref[0];
+    }
+    return inStage[0];
   }
   function recommend() {
     var rated = Object.keys(P.scores).length;
@@ -179,7 +213,7 @@
   }
 
   /* ---------------- состояние ---------------- */
-  var state = { view: "plan", topics: {}, tiers: {}, status: "all", sort: "year", q: "", current: null, exam: null, legend: false };
+  var state = { view: "plan", diag: null, topics: {}, tiers: {}, status: "all", sort: "year", q: "", current: null, exam: null, legend: false };
 
   /* ---------------- тема ---------------- */
   function applyTheme() {
@@ -329,7 +363,9 @@
       mid.appendChild(el("span", "yr", p.year + "/" + p.num + "  "));
       mid.appendChild(document.createTextNode(locP(p, "title")));
       var s = P.scores[p.id];
-      var sc = el("span", "sc" + (s == null ? "" : s >= 5 ? " has" : " low"), s == null ? "—" : s + "/7");
+      var sc = el("span", "sc");
+      if (s != null) sc.appendChild(meter(s));
+      else { var dash = el("span", "nodot"); dash.title = t("pr.sub.unrated"); sc.appendChild(dash); }
       if (isDue(p.id)) { sc.classList.add("duedot"); sc.title = t("pr.due"); }
       b.appendChild(bd); b.appendChild(mid); b.appendChild(sc);
       b.addEventListener("click", function () { openProblem(p.id); });
@@ -415,7 +451,7 @@
     w.innerHTML = "";
     var p = byId(state.current);
     if (!p) {
-      var ph = el("div", "card");
+      var ph = el("div", "panel");
       ph.appendChild(el("h2", "ptitle", t("pr.ph.title")));
       ph.appendChild(el("p", "lead", t("pr.ph.body", { n: DATA.length, plan: t("nav.plan") })));
       var cta = el("button", "btn primary", t("pr.ph.cta"));
@@ -441,9 +477,10 @@
 
     w.appendChild(el("h2", "ptitle", locP(p, "title")));
     var s = P.scores[p.id];
-    w.appendChild(el("div", "psub", t("topic." + p.topic) + " · " +
-      (s == null ? t("pr.sub.unrated") : t("pr.sub.score", { s: s })) + " · " +
-      t("pr.sub.time", { t: humanTime(P.time[p.id] || 0) })));
+    var psub = el("div", "psub");
+    psub.appendChild(meter(s, true));
+    psub.appendChild(el("span", null, t("topic." + p.topic) + " · " + t("pr.sub.time", { t: humanTime(P.time[p.id] || 0) })));
+    w.appendChild(psub);
 
     if (contentLang() !== LANG) {
       var note = el("div", "langnote");
@@ -459,7 +496,7 @@
     var tb = el("button", "btn primary", t("pr.timer.start")); tb.id = "timerBtn";
     tb.addEventListener("click", function () { timerToggle(p.id); });
     tools.appendChild(clock); tools.appendChild(tb);
-    var rb = el("button", "btn", t("pr.random"));
+    var rb = el("button", "btn", cap(t("pr.random")));
     rb.addEventListener("click", randomProblem);
     tools.appendChild(rb);
     w.appendChild(tools);
@@ -600,7 +637,7 @@
 
     /* рекомендация */
     var r = recommend();
-    var card = el("div", "card today");
+    var card = el("div", "panel today");
     card.appendChild(el("div", "sublbl", t("plan.today.title")));
     var line = el("p", "todayline");
     if (r.kind === "exam") {
@@ -629,6 +666,24 @@
       card.appendChild(ob);
     }
     wrap.appendChild(card);
+
+    /* диагностика */
+    if (!P.diag) {
+      var dcta = el("div", "panel cta");
+      dcta.appendChild(el("p", null, t("dg.cta")));
+      var dgo = el("button", "btn", t("dg.cta.go"));
+      dgo.addEventListener("click", function () { switchView("diag"); });
+      dcta.appendChild(dgo);
+      wrap.appendChild(dcta);
+    } else {
+      var dl = el("p", "secnote diagline");
+      dl.textContent = t("dg.last", { d: fmtDate(P.diag.d), level: t("dg.level." + P.diag.level), n: P.diag.overall });
+      var dmore = el("button", "linkish", t("dg.report"));
+      dmore.addEventListener("click", function () { switchView("diag"); });
+      dl.appendChild(document.createTextNode("  "));
+      dl.appendChild(dmore);
+      wrap.appendChild(dl);
+    }
 
     /* блоки текста */
     function textBlock(titleKey, items, noteKey, open) {
@@ -749,7 +804,7 @@
         var ul = el("ul", "hist");
         P.exams.slice().reverse().slice(0, 12).forEach(function (e) {
           var li = el("li");
-          li.appendChild(el("span", "num", e.date));
+          li.appendChild(el("span", "num", fmtDate(e.date)));
           li.appendChild(el("strong", null, (e.scores || []).reduce(function (a, b) { return a + (b || 0); }, 0) + "/21"));
           li.appendChild(el("span", null, (e.ids || []).join(", ")));
           li.appendChild(el("span", "num", humanTime(e.elapsed)));
@@ -780,7 +835,7 @@
     var cards = el("div", "cards");
     e.ids.forEach(function (id, idx) {
       var p = byId(id);
-      var card = el("div", "card");
+      var card = el("div", "panel");
       var slot = el("div", "exam-slot");
       slot.appendChild(el("div", "pno", t("tr.pno", { n: idx + 1 })));
       var mid = el("div");
@@ -811,7 +866,7 @@
 
     if (e.finished) {
       var tot = e.scores.reduce(function (a, b) { return a + (b || 0); }, 0);
-      var res = el("div", "card"); res.style.marginTop = "16px";
+      var res = el("div", "panel"); res.style.marginTop = "16px";
       res.appendChild(el("h3", null, t("tr.result", { s: tot })));
       res.appendChild(el("p", "secnote", t("tr.result.desc", { t: humanTime(e.elapsed) })));
       var s1 = el("button", "btn primary", t("tr.save"));
@@ -969,7 +1024,7 @@
     stats.appendChild(stat(String(streak()), t("pg.streak")));
     wrap.appendChild(stats);
 
-    var pace = el("div", "card");
+    var pace = el("div", "panel");
     pace.appendChild(el("h3", null, t("pg.medal.title")));
     var six = avg * 6;
     pace.appendChild(el("p", "secnote", attempted < 6 ? t("pg.medal.few") : t("pg.medal.body", { n: six.toFixed(0) })));
@@ -978,6 +1033,12 @@
     }
     pace.appendChild(el("div", "note", t("pg.medal.note")));
     wrap.appendChild(pace);
+
+    if (P.diag) {
+      var dln = el("p", "secnote diagline");
+      dln.textContent = t("dg.last", { d: fmtDate(P.diag.d), level: t("dg.level." + P.diag.level), n: P.diag.overall });
+      wrap.appendChild(dln);
+    }
 
     wrap.appendChild(el("h3", "sec", t("pg.topics")));
     wrap.appendChild(el("div", "secnote", t("pg.topics.note")));
@@ -992,7 +1053,7 @@
       var tr = el("div", "track");
       var fi = el("div", "fill");
       fi.style.width = (max ? Math.round(got / max * 100) : 0) + "%";
-      fi.style.background = "var(--t-" + k + ")";
+      fi.style.background = "var(--mark-" + k + ")";
       tr.appendChild(fi); row.appendChild(tr);
       row.appendChild(el("div", "val", done.length ? got + "/" + max + " (" + done.length + "/" + inTopic.length + ")" : t("pg.nodata")));
       bars.appendChild(row);
@@ -1059,7 +1120,7 @@
     var dayKeys = Object.keys(days).sort();
     wrap.appendChild(el("h3", "sec", t("pg.activity")));
     wrap.appendChild(el("div", "secnote", dayKeys.length
-      ? t("pg.activity.body", { d: dayKeys.length, last: dayKeys[dayKeys.length - 1] })
+      ? t("pg.activity.body", { d: dayKeys.length, last: fmtDate(dayKeys[dayKeys.length - 1]) })
       : t("pg.activity.empty")));
 
     wrap.appendChild(el("h3", "sec", t("pg.data")));
@@ -1084,6 +1145,7 @@
           ["scores", "notes", "hints", "time", "last"].forEach(function (k) { if (o[k]) P[k] = o[k]; });
           if (Array.isArray(o.log)) P.log = o.log;
           if (Array.isArray(o.exams)) P.exams = o.exams;
+          if (o.diag) P.diag = o.diag;
           save(); renderProgress(); renderList();
           toast(t("pg.import.ok"));
         } catch (e) { toast(t("pg.import.bad")); }
@@ -1094,7 +1156,7 @@
     clr.addEventListener("click", function () {
       var ok = el("button", "btn danger", t("pg.reset.confirm"));
       ok.addEventListener("click", function () {
-        P.scores = {}; P.notes = {}; P.hints = {}; P.time = {}; P.last = {}; P.log = []; P.exams = [];
+        P.scores = {}; P.notes = {}; P.hints = {}; P.time = {}; P.last = {}; P.log = []; P.exams = []; P.diag = null;
         save(); renderProgress(); renderList(); toast(t("pg.reset.done"));
       });
       io.appendChild(ok); clr.disabled = true;
@@ -1123,6 +1185,293 @@
     v.appendChild(wrap);
   }
 
+
+  /* ---------------- диагностика ---------------- */
+  var DIAG_SECONDS = 80 * 60;
+
+  function shuffled(a) {
+    var r = a.slice();
+    for (var i = r.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var x = r[i]; r[i] = r[j]; r[j] = x; }
+    return r;
+  }
+  function techById(id) { for (var i = 0; i < TECH.length; i++) if (TECH[i].id === id) return TECH[i]; return null; }
+  function diagPaper() {
+    return ["A", "C", "G", "N"].map(function (tp) {
+      var pool = DATA.filter(function (p) { return p.topic === tp && p.tier === 1 && P.scores[p.id] == null; });
+      if (!pool.length) pool = DATA.filter(function (p) { return p.topic === tp && p.tier === 1; });
+      return pool[Math.floor(Math.random() * pool.length)];
+    });
+  }
+  function diagStart() {
+    state.diag = {
+      phase: "part1", i: 0,
+      items: DIAG.recognition.map(function (it) {
+        return { it: it, opts: shuffled([it.correct].concat(it.options)) };
+      }),
+      answers: [], paper: null, exam: null, scores: [null, null, null, null]
+    };
+    renderDiag();
+  }
+  function diagReport(d) {
+    var rec = { A: [0, 0], C: [0, 0], G: [0, 0], N: [0, 0] };
+    d.items.forEach(function (q, i) {
+      var tp = byId(q.it.problem).topic;
+      rec[tp][1]++;
+      if (d.answers[i] === q.it.correct) rec[tp][0]++;
+    });
+    var solve = null;
+    if (d.paper && d.scores.some(function (x) { return x != null; })) {
+      solve = {};
+      d.paper.forEach(function (p, i) { if (d.scores[i] != null) solve[p.topic] = d.scores[i]; });
+    }
+    var idx = {};
+    ["A", "C", "G", "N"].forEach(function (tp) {
+      var r = rec[tp][1] ? rec[tp][0] / rec[tp][1] * 100 : 0;
+      idx[tp] = (solve && solve[tp] != null) ? 0.5 * r + 0.5 * (solve[tp] / 7 * 100) : r;
+    });
+    var keys = ["A", "C", "G", "N"];
+    var overall = keys.reduce(function (a, k) { return a + idx[k]; }, 0) / 4;
+    var weak = keys.slice().sort(function (a, b) { return idx[a] - idx[b]; })[0];
+    var strong = keys.slice().sort(function (a, b) { return idx[b] - idx[a]; })[0];
+    return {
+      d: today(), rec: rec, solve: solve, idx: idx, overall: Math.round(overall),
+      level: overall < 35 ? 1 : overall < 60 ? 2 : overall < 80 ? 3 : 4,
+      weak: weak, strong: strong
+    };
+  }
+
+  function renderDiag() {
+    var v = $("#view-diag");
+    v.innerHTML = "";
+    var wrap = el("div", "wrap");
+    var d = state.diag;
+
+    /* вступление или сохранённый отчёт */
+    if (!d) {
+      wrap.appendChild(el("h1", null, t("dg.title")));
+      wrap.appendChild(el("p", "lead", t("dg.lead")));
+      if (P.diag) {
+        wrap.appendChild(diagReportCard(P.diag));
+        var again = el("button", "btn", t("dg.again"));
+        again.addEventListener("click", diagStart);
+        wrap.appendChild(again);
+      } else {
+        var card = el("div", "panel");
+        card.appendChild(el("h3", null, t("dg.part1")));
+        card.appendChild(el("p", "secnote", t("dg.part1.lead")));
+        card.appendChild(el("h3", null, t("dg.part2")));
+        card.appendChild(el("p", "secnote", t("dg.part2.lead")));
+        var go = el("button", "btn primary", t("dg.start"));
+        go.addEventListener("click", diagStart);
+        card.appendChild(go);
+        wrap.appendChild(card);
+      }
+      wrap.appendChild(el("div", "note", t("dg.honest")));
+      v.appendChild(wrap);
+      return;
+    }
+
+    /* часть 1 — узнавание */
+    if (d.phase === "part1") {
+      var q = d.items[d.i], p = byId(q.it.problem);
+      wrap.appendChild(el("div", "sublbl", t("dg.part1")));
+      var head = el("div", "qhead");
+      head.appendChild(el("span", "num", t("dg.q", { n: d.i + 1, total: d.items.length })));
+      var prog = el("div", "qprog");
+      var fill = el("div", "fill");
+      fill.style.width = Math.round(d.i / d.items.length * 100) + "%";
+      prog.appendChild(fill);
+      head.appendChild(prog);
+      wrap.appendChild(head);
+
+      wrap.appendChild(setHTML(el("div", "statement"), locP(p, "statement")));
+      wrap.appendChild(el("p", "qprompt", t("dg.prompt")));
+
+      var answered = d.answers[d.i] != null;
+      var opts = el("div", "opts");
+      q.opts.forEach(function (tid) {
+        var x = techById(tid);
+        var b = el("button", "opt");
+        b.appendChild(el("span", "optname", locT(x, "name")));
+        if (answered) {
+          b.disabled = true;
+          if (tid === q.it.correct) b.classList.add("right");
+          else if (tid === d.answers[d.i]) b.classList.add("wrong");
+        } else {
+          b.addEventListener("click", function () { d.answers[d.i] = tid; renderDiag(); });
+        }
+        opts.appendChild(b);
+      });
+      wrap.appendChild(opts);
+
+      if (answered) {
+        var ok = d.answers[d.i] === q.it.correct;
+        var fb = el("div", "feedback " + (ok ? "right" : "wrong"));
+        fb.appendChild(el("strong", null, ok ? t("dg.correct") : t("dg.wrong", { a: locT(techById(q.it.correct), "name") })));
+        fb.appendChild(inlineHTML(el("p"), q.it.why[contentLang()] || q.it.why.en));
+        wrap.appendChild(fb);
+        var nb = el("button", "btn primary", d.i + 1 < d.items.length ? t("dg.next") : t("dg.part2"));
+        nb.addEventListener("click", function () {
+          if (d.i + 1 < d.items.length) { d.i++; renderDiag(); window.scrollTo(0, 0); }
+          else { d.phase = "part2"; renderDiag(); window.scrollTo(0, 0); }
+        });
+        wrap.appendChild(nb);
+      }
+      v.appendChild(wrap);
+      return;
+    }
+
+    /* часть 2 — решение */
+    if (d.phase === "part2") {
+      wrap.appendChild(el("div", "sublbl", t("dg.part2")));
+      if (!d.paper) {
+        wrap.appendChild(el("p", "lead", t("dg.part2.lead")));
+        var row = el("div", "tools");
+        var s2 = el("button", "btn primary", t("dg.part2.start"));
+        s2.addEventListener("click", function () {
+          d.paper = diagPaper();
+          d.exam = { limit: DIAG_SECONDS, elapsed: 0, t0: Date.now(), paused: false, finished: false };
+          if (diagHandle) clearInterval(diagHandle);
+          diagHandle = setInterval(paintDiagClock, 1000);
+          renderDiag();
+        });
+        var skip = el("button", "btn", t("dg.part2.skip"));
+        skip.addEventListener("click", function () { d.phase = "report"; diagSave(); renderDiag(); });
+        row.appendChild(s2); row.appendChild(skip);
+        wrap.appendChild(row);
+        wrap.appendChild(el("div", "note", t("tr.rules")));
+        v.appendChild(wrap);
+        return;
+      }
+
+      var head2 = el("div", "exam-head");
+      var bc = el("div", "bigclock num"); bc.id = "diagclock";
+      head2.appendChild(bc);
+      var fin = el("button", "btn primary", t("dg.part2.finish"));
+      fin.addEventListener("click", function () {
+        if (!d.exam.paused) d.exam.elapsed += (Date.now() - d.exam.t0) / 1000;
+        d.exam.paused = true; d.exam.finished = true;
+        if (diagHandle) { clearInterval(diagHandle); diagHandle = null; }
+        renderDiag();
+      });
+      head2.appendChild(fin);
+      wrap.appendChild(head2);
+      if (d.exam.finished) wrap.appendChild(el("p", "secnote", t("dg.part2.rate")));
+      else wrap.appendChild(el("div", "secnote", t("tr.active")));
+
+      var cards = el("div", "cards");
+      d.paper.forEach(function (p, idx2) {
+        var card = el("div", "panel");
+        var m = el("div", "meta");
+        var bd = el("span", "badge " + p.topic, p.topic); bd.title = t("topic." + p.topic);
+        m.appendChild(bd);
+        m.appendChild(el("span", "tag", t("pr.header", { year: p.year, num: p.num })));
+        card.appendChild(m);
+        card.appendChild(setHTML(el("div", "exam-st"), locP(p, "statement")));
+        if (d.exam.finished) {
+          var g = el("div", "sgrid");
+          for (var i = 0; i <= 7; i++) {
+            (function (val) {
+              var sb = el("button", "sbtn", String(val));
+              sb.title = t("rub." + val);
+              sb.setAttribute("aria-pressed", d.scores[idx2] === val);
+              sb.addEventListener("click", function () { d.scores[idx2] = val; renderDiag(); });
+              g.appendChild(sb);
+            })(i);
+          }
+          card.appendChild(g);
+        }
+        cards.appendChild(card);
+      });
+      wrap.appendChild(cards);
+
+      if (d.exam.finished) {
+        var done = el("button", "btn primary", t("dg.report"));
+        done.addEventListener("click", function () {
+          d.paper.forEach(function (p, i) { if (d.scores[i] != null) setScoreSilent(p.id, d.scores[i]); });
+          d.phase = "report"; diagSave(); renderList(); renderDiag(); window.scrollTo(0, 0);
+        });
+        wrap.appendChild(done);
+      }
+      v.appendChild(wrap);
+      paintDiagClock();
+      return;
+    }
+
+    /* отчёт */
+    wrap.appendChild(el("h1", null, t("dg.report")));
+    wrap.appendChild(diagReportCard(P.diag));
+    var ag = el("button", "btn", t("dg.again"));
+    ag.addEventListener("click", diagStart);
+    wrap.appendChild(ag);
+    wrap.appendChild(el("div", "note", t("dg.honest")));
+    v.appendChild(wrap);
+  }
+
+  var diagHandle = null;
+  function paintDiagClock() {
+    var d = state.diag, n = $("#diagclock");
+    if (!d || !d.exam || !n) return;
+    var used = d.exam.elapsed + (d.exam.paused || d.exam.finished ? 0 : (Date.now() - d.exam.t0) / 1000);
+    var left = d.exam.limit - used;
+    n.textContent = hhmmss(Math.max(0, left));
+    n.classList.toggle("low", left < 600);
+    if (left <= 0 && !d.exam.finished) { d.exam.finished = true; d.exam.paused = true; if (diagHandle) { clearInterval(diagHandle); diagHandle = null; } renderDiag(); }
+  }
+  function diagSave() {
+    P.diag = diagReport(state.diag);
+    save();
+  }
+
+  function diagReportCard(r) {
+    var box = el("div", "panel report");
+    box.appendChild(el("div", "sublbl", t("dg.report.date", { d: fmtDate(r.d) })));
+    box.appendChild(el("h2", "levelname", t("dg.level." + r.level)));
+    var meterRow = el("div", "indexrow");
+    var tr = el("div", "track big");
+    var fi = el("div", "fill"); fi.style.width = r.overall + "%"; fi.style.background = "var(--accent)";
+    tr.appendChild(fi);
+    meterRow.appendChild(tr);
+    meterRow.appendChild(el("span", "num idxval", r.overall + "/100"));
+    box.appendChild(meterRow);
+    box.appendChild(el("p", "leveldesc", t("dg.level." + r.level + ".desc")));
+
+    box.appendChild(el("div", "sublbl", t("dg.profile")));
+    var bars = el("div", "bars");
+    ["A", "C", "G", "N"].forEach(function (tp) {
+      var row = el("div", "bar");
+      row.appendChild(el("div", null, t("topic." + tp)));
+      var trk = el("div", "track");
+      var f2 = el("div", "fill");
+      f2.style.width = Math.round(r.idx[tp]) + "%";
+      f2.style.background = "var(--mark-" + tp + ")";
+      trk.appendChild(f2);
+      trk.title = t("topic." + tp) + ": " + Math.round(r.idx[tp]) + "/100";
+      row.appendChild(trk);
+      var lbl = r.rec[tp][0] + "/" + r.rec[tp][1] + (r.solve && r.solve[tp] != null ? " · " + r.solve[tp] + "/7" : "");
+      row.appendChild(el("div", "val", lbl));
+      bars.appendChild(row);
+    });
+    box.appendChild(bars);
+    box.appendChild(el("div", "secnote", t("dg.profile.note")));
+
+    var wk = el("p", "weakline");
+    wk.appendChild(el("strong", null, t("dg.weak", { t: t("topic." + r.weak) })));
+    wk.appendChild(document.createTextNode("  ·  " + t("dg.strong", { t: t("topic." + r.strong) })));
+    box.appendChild(wk);
+
+    var mod = PLAN.filter(function (m) { return m.topic === r.weak && !moduleStats(m).complete; })[0]
+      || PLAN.filter(function (m) { return m.topic === r.weak; })[0];
+    if (mod) {
+      box.appendChild(el("div", "sublbl", t("dg.next.title")));
+      box.appendChild(el("p", null, t("dg.next.module", { m: locPlan(mod, "title") })));
+      var go2 = el("button", "btn primary", t("dg.next.open"));
+      go2.addEventListener("click", function () { switchView("plan"); });
+      box.appendChild(go2);
+    }
+    return box;
+  }
+
   /* ---------------- переключение разделов ---------------- */
   function switchView(name) {
     state.view = name;
@@ -1132,6 +1481,7 @@
       if (b) b.setAttribute("aria-selected", n === name);
     });
     if (name === "plan") renderPlan();
+    if (name === "diag") renderDiag();
     if (name === "arsenal") renderArsenal();
     if (name === "progress") renderProgress();
     if (name === "train") renderTrain();
