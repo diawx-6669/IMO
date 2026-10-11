@@ -1,0 +1,1 @@
+KaTeX 0.16.9 — MIT License. Vendored from npm (katex@0.16.9). https://katex.org

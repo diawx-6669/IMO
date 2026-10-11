@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IMO Workbench</title>
+<meta name="description" content="Подготовка к Международной математической олимпиаде: банк реальных задач IMO 1959–2025 с подсказками и разборами, тренировочные туры по регламенту, арсенал техник и учёт прогресса по семибалльной шкале.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,600&display=swap">
+<link rel="stylesheet" href="assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <b>IMO Workbench</b>
+    <span>1959–2025 · 82 задачи</span>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Разделы">
+    <button id="tab-problems" role="tab" aria-selected="true">Задачи</button>
+    <button id="tab-train" role="tab" aria-selected="false">Тренировка</button>
+    <button id="tab-arsenal" role="tab" aria-selected="false">Арсенал</button>
+    <button id="tab-progress" role="tab" aria-selected="false">Прогресс</button>
+  </nav>
+  <button id="themeBtn" class="icon-btn" title="Тема" aria-label="Переключить тему">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+      <circle cx="8" cy="8" r="3.2"/><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3.1 3.1l1.1 1.1M11.8 11.8l1.1 1.1M12.9 3.1l-1.1 1.1M4.2 11.8l-1.1 1.1"/>
+    </svg>
+  </button>
+</header>
+
+<main>
+  <section id="view-problems" class="view">
+    <div class="split" id="split" data-pane="list">
+      <aside class="rail">
+        <div class="filters" id="filters"></div>
+        <ol class="plist" id="plist"></ol>
+      </aside>
+      <article class="work" id="work"></article>
+    </div>
+  </section>
+
+  <section id="view-train" class="view" hidden></section>
+  <section id="view-arsenal" class="view" hidden></section>
+  <section id="view-progress" class="view" hidden></section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<div id="boot" class="wrap"><p class="lead">Загрузка банка задач…</p></div>
+<noscript><div class="wrap"><p class="lead">Для работы нужен JavaScript: задачи, подсказки и разборы подставляются на странице.</p></div></noscript>
+
+<script src="assets/vendor/katex/katex.min.js"></script>
+<script src="data/problems-1.js"></script>
+<script src="data/problems-2.js"></script>
+<script src="data/problems-3.js"></script>
+<script src="data/problems-4.js"></script>
+<script src="data/problems-5.js"></script>
+<script src="data/techniques.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
