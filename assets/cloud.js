@@ -105,14 +105,35 @@ window.IMO_CLOUD = (function () {
     }, function () { return bootServerOrLocal(); });
   }
 
-  function bootServerOrLocal() {
-    db = null; user = null;
-    if (backend) { S.mode = "server"; S.canWrite = true; return pull(); }
+  function goLocal() {
     S.mode = "local"; S.canWrite = true; S.note = "local";
     S.row = local.row ? sane(local.row, local.token || "me") : null;
     S.rows = S.row ? [S.row] : [];
     S.count = S.rows.length;
     return Promise.resolve(S);
+  }
+
+  /* Сайт может лежать на том же домене, что и бэкенд (Cloudflare Pages).
+     Тогда адрес прописывать не нужно — просто проверяем /api/board. */
+  function probeSameOrigin() {
+    if (typeof fetch !== "function") return Promise.resolve(null);
+    if (!/^https?:$/.test(location.protocol)) return Promise.resolve(null);
+    return fetch("/api/board", { headers: { "accept": "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { return (j && typeof j.count === "number" && j.rows) ? j : null; },
+        function () { return null; });
+  }
+
+  function bootServerOrLocal() {
+    db = null; user = null;
+    if (backend) { S.mode = "server"; S.canWrite = true; return pull(); }
+    return probeSameOrigin().then(function (j) {
+      if (!j) return goLocal();
+      S.mode = "server"; S.canWrite = true;          // backend остаётся пустым: пути относительные
+      take(j.rows.map(function (o) { return sane(o, o.id); }));
+      S.count = j.count;
+      return S;
+    }, goLocal);
   }
 
   /* ---------- чтение рейтинга ---------- */
