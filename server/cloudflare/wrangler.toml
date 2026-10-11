@@ -1,0 +1,16 @@
+# Конфигурация бэкенда рейтинга. Перед первым деплоем замените
+# database_id на тот, что выдаст `npx wrangler d1 create imo-rating`,
+# и впишите в ORIGIN адрес своего сайта.
+
+name = "imo-rating"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+# Откуда разрешены запросы. Поставьте адрес своей страницы вместо "*".
+ORIGIN = "*"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "imo-rating"
+database_id = "ЗАМЕНИТЕ-НА-СВОЙ-ID"

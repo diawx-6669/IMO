@@ -1,0 +1,11 @@
+{
+  "name": "imo-rating-worker",
+  "private": true,
+  "description": "Бэкенд рейтинга IMO Workbench на Cloudflare Workers + D1",
+  "scripts": {
+    "db:create": "npx wrangler d1 create imo-rating",
+    "db:init": "npx wrangler d1 execute imo-rating --remote --file=schema.sql",
+    "deploy": "npx wrangler deploy",
+    "logs": "npx wrangler tail"
+  }
+}

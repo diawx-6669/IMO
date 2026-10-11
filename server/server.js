@@ -71,6 +71,16 @@ function sanitize(body, prev) {
 /* id, который виден другим: хеш токена, сам токен не раскрываем */
 const pub = (token) => crypto.createHash("sha256").update("imo:" + token).digest("hex").slice(0, 16);
 
+const CORS = {
+  "access-control-allow-origin": process.env.ORIGIN || "*",
+  "access-control-allow-headers": "content-type",
+  "access-control-allow-methods": "GET,POST,OPTIONS",
+  "access-control-max-age": "86400"
+};
+function preflight(res) {                 // 204 — без тела
+  res.writeHead(204, CORS);
+  res.end();
+}
 function send(res, code, obj) {
   const body = JSON.stringify(obj);
   res.writeHead(code, {
@@ -86,7 +96,7 @@ function send(res, code, obj) {
 
 http.createServer((req, res) => {
   const url = new URL(req.url, "http://x");
-  if (req.method === "OPTIONS") return send(res, 204, {});
+  if (req.method === "OPTIONS") return preflight(res);
 
   if (req.method === "GET" && url.pathname === "/api/board") {
     const rows = Object.keys(store.rows).map((tk) => Object.assign({ id: pub(tk) }, store.rows[tk]));
