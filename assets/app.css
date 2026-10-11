@@ -110,6 +110,12 @@ button{font:inherit;color:inherit}
 .brand{display:flex;align-items:baseline;gap:9px;margin-right:auto}
 .brand b{font-family:var(--f-display);font-size:19px;letter-spacing:-.01em}
 .brand span{font-size:11.5px;color:var(--muted);letter-spacing:.07em;text-transform:uppercase}
+.headtools{display:flex;gap:6px;align-items:center}
+.langsel{
+  border:1px solid var(--line);border-radius:var(--r-s);background:var(--surface);color:var(--ink-soft);
+  padding:6px 7px;font:inherit;font-size:13px;max-width:130px;
+}
+.langsel:hover{border-color:var(--line-strong);color:var(--ink)}
 .tabs{display:flex;gap:2px;flex-wrap:wrap}
 .tabs button{
   background:none;border:1px solid transparent;border-radius:var(--r-s);
@@ -141,7 +147,7 @@ main{padding-block:0}
   .split{min-height:calc(100svh - var(--topbar))}
   .rail{height:calc(100svh - var(--topbar) - env(safe-area-inset-top,0px))}
 }
-.work{min-width:0;padding:24px 16px 80px;max-width:800px}
+.work{min-width:0;padding:24px 16px 80px;max-width:800px;scroll-margin-top:calc(var(--topbar) + 8px)}
 
 /* фильтры */
 .filters{padding:14px 14px 10px;border-bottom:1px solid var(--line);display:grid;gap:9px}
@@ -341,6 +347,37 @@ kbd{
 .kbdlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:7px;font-size:13px;color:var(--ink-soft);margin-top:10px}
 footer.foot{border-top:1px solid var(--line);margin-top:40px;padding:18px 0 0;font-size:12.5px;color:var(--muted)}
 
+/* ---------- план ---------- */
+.today{border-left:3px solid var(--accent);margin:18px 0 22px}
+.todayline{margin:6px 0 12px;font-size:15.5px;max-width:62ch}
+.todayrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.todayname{font-family:var(--f-display);font-size:16px}
+.prose p{margin:0 0 .85em;max-width:68ch;font-size:14.8px;line-height:1.65}
+.prose p:last-child{margin-bottom:0}
+.stagehead{display:flex;align-items:baseline;gap:10px;margin:26px 0 6px}
+.stagehead h4{font-size:17px}
+.stageval{font-family:var(--f-mono);font-size:13px;color:var(--muted);margin-left:auto}
+.stagebar{margin-bottom:8px}
+.mprog{margin-left:auto}
+.tech.done .tname{color:var(--muted)}
+.tech.done .mprog{color:var(--ok)}
+.pill.prob{padding-left:5px}
+.pill.prob .badge{width:15px;height:15px;font-size:10px}
+.pill.prob.ok{border-color:color-mix(in srgb,var(--ok) 45%,var(--line));color:var(--ok)}
+.pill.prob.weak{border-color:color-mix(in srgb,var(--bad) 45%,var(--line));color:var(--bad)}
+.relbox{margin-top:16px}
+.langnote{
+  border:1px solid color-mix(in srgb,var(--warn) 35%,var(--line));
+  background:color-mix(in srgb,var(--warn) 7%,var(--surface));
+  border-radius:var(--r);padding:10px 13px;font-size:13.5px;color:var(--ink-soft);margin-bottom:14px;
+}
+.legend{font-size:12.5px;color:var(--muted);line-height:1.55;padding:2px 2px 4px}
+.lgbtn{margin-top:2px;text-align:left}
+.sc.duedot::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--warn);margin-left:5px;vertical-align:middle}
+.tag.due{border-color:color-mix(in srgb,var(--warn) 50%,var(--line));color:var(--warn)}
+.sgrid.vert{flex-direction:column}
+.btn.danger{border-color:color-mix(in srgb,var(--bad) 50%,var(--line));color:var(--bad)}
+
 /* ---------- узкие экраны ---------- */
 @media (max-width:860px){
   .split{grid-template-columns:1fr;min-height:0}
@@ -352,12 +389,16 @@ footer.foot{border-top:1px solid var(--line);margin-top:40px;padding:18px 0 0;fo
   .work{padding:18px 16px 70px}
   .bar{grid-template-columns:86px 1fr auto}
 }
-@media (max-width:620px){
-  .top{row-gap:7px}
-  .brand{flex:1 1 auto}
-  #themeBtn{order:1}
-  .tabs{order:2;flex-basis:100%}
+@media (max-width:720px){
+  .top{row-gap:8px}
+  .brand{flex:1 1 auto;min-width:0}
+  .brand span{display:none}
+  .headtools{order:1}
+  .tabs{order:2;flex-basis:100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{white-space:nowrap;flex:none}
   .kbdhint{display:none}
   .statement{font-size:16px;padding:14px 15px}
+  .stagehead{flex-wrap:wrap}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

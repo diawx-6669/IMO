@@ -3,7 +3,13 @@ const katex = require('../assets/vendor/katex/katex.min.js');
 global.window = {};
 ['1','2','3','4','5'].forEach(f => require('../data/problems-' + f + '.js'));
 require('../data/techniques.js');
+['1','2','3','4','5'].forEach(f => { try { require('../data/en/problems-' + f + '.js'); } catch (e) {} });
+try { require('../data/en/techniques.js'); } catch (e) {}
+['ru','en','uk','es'].forEach(l => { try { require('../data/lang/' + l + '.js'); } catch (e) {} });
+try { require('../data/plan.js'); } catch (e) {}
 const DATA = window.IMO_DATA, TECH = window.IMO_TECHNIQUES;
+const EN = (window.IMO_L10N && window.IMO_L10N.en) || { problems: {}, tech: {} };
+const I18N = window.IMO_I18N || {}, PLAN = window.IMO_PLAN || [];
 
 let errors = [], mathCount = 0, texts = 0;
 
@@ -54,6 +60,51 @@ TECH.forEach(t => {
   (t.problems || []).forEach(pid => { if (!ids.has(pid)) errors.push('tech ' + t.id + ': нет задачи ' + pid); });
 });
 
+// --- английские материалы ---
+const enFields = ['title','statement','solution','hints'];
+Object.keys(EN.problems).forEach(id => {
+  const o = EN.problems[id];
+  if (!DATA.some(p => p.id === id)) errors.push('en: нет задачи ' + id);
+  enFields.forEach(k => { if (o[k] == null) errors.push('en/' + id + ': нет поля ' + k); });
+  const base = DATA.filter(p => p.id === id)[0] || {};
+  if (base.answer && o.answer == null) errors.push('en/' + id + ': нет ответа, а в оригинале он есть');
+  if (base.hints && o.hints && base.hints.length !== o.hints.length) errors.push('en/' + id + ': подсказок ' + o.hints.length + ' вместо ' + base.hints.length);
+  checkText('en/' + id + '/statement', o.statement);
+  checkText('en/' + id + '/solution', o.solution);
+  checkText('en/' + id + '/answer', o.answer);
+  (o.hints || []).forEach((h, i) => checkText('en/' + id + '/hint' + (i + 1), h));
+});
+Object.keys(EN.tech).forEach(id => {
+  const o = EN.tech[id];
+  if (!TECH.some(x => x.id === id)) errors.push('en tech: нет приёма ' + id);
+  if (o.name == null || o.core == null) errors.push('en tech/' + id + ': нет name или core');
+  checkText('en tech:' + id + '/core', o.core);
+  checkText('en tech:' + id + '/pitfall', o.pitfall);
+  (o.when || []).forEach((w, i) => checkText('en tech:' + id + '/when' + i, w));
+});
+const missingEn = DATA.filter(p => !EN.problems[p.id]).map(p => p.id);
+const missingEnT = TECH.filter(x => !EN.tech[x.id]).map(x => x.id);
+
+// --- локализация интерфейса ---
+const baseKeys = Object.keys((I18N.ru && I18N.ru.s) || {});
+Object.keys(I18N).forEach(l => {
+  const miss = baseKeys.filter(k => !I18N[l].s[k]);
+  if (miss.length) errors.push('i18n ' + l + ': нет ключей ' + miss.slice(0, 5).join(','));
+});
+
+// --- маршрут ---
+const inPlan = [];
+PLAN.forEach(m => {
+  m.problems.forEach(pid => { inPlan.push(pid); if (!ids.has(pid)) errors.push('plan ' + m.id + ': нет задачи ' + pid); });
+  m.tech.forEach(tid => { if (!TECH.some(x => x.id === tid)) errors.push('plan ' + m.id + ': нет приёма ' + tid); });
+});
+inPlan.filter((x, i) => inPlan.indexOf(x) !== i).forEach(x => errors.push('plan: дубль задачи ' + x));
+DATA.filter(p => inPlan.indexOf(p.id) < 0).forEach(p => errors.push('plan: задача ' + p.id + ' не входит в маршрут'));
+
+console.log('языков интерфейса: ' + Object.keys(I18N).length + ' | модулей маршрута: ' + PLAN.length);
+console.log('английских задач: ' + Object.keys(EN.problems).length + '/' + DATA.length +
+  (missingEn.length ? ' | нет перевода: ' + missingEn.length : '') +
+  ' | английских приёмов: ' + Object.keys(EN.tech).length + '/' + TECH.length);
 console.log('задач: ' + DATA.length + ' | техник: ' + TECH.length + ' | текстовых полей: ' + texts + ' | формул: ' + mathCount);
 if (errors.length) { console.log('\nОШИБКИ (' + errors.length + '):'); errors.slice(0, 60).forEach(e => console.log(' - ' + e)); process.exit(1); }
 console.log('Ошибок нет.');
